@@ -2,6 +2,7 @@ from typing import List
 
 from ..pipes.pipeline import Pipe, Pipeline 
 import os
+from typing import List, Tuple
 from nltk.corpus import stopwords
 import string
 from nltk.tokenize import word_tokenize
@@ -82,9 +83,26 @@ def stemming_words(context: dict, is_query=False) -> dict:
 def stemming_words_query(context: dict) -> dict:
     return stemming_words(context, True)
 
+def add_term_matrix(context: dict) -> dict:
+    """
+    Adds a term-document matrix in `term_matrix` key
+    """
+    matrix = Matrix([doc["tokens"] for doc in context["documents"]])
+    context["term_matrix"] = matrix
+    return context
+
+class Matrix:
+    def __init__(self, tokens: List[List[str]]) -> None:
+        self.all_terms = list(set(x for y in tokens for x in y))
+        self.all_terms.sort()
+        self.__matrix = {(t,i): len([y for y in doc if y.lower() == t.lower()]) for t in self.all_terms for i,doc in enumerate(tokens)}
+
+    def __getitem__(self, key: Tuple[str,int]) -> int:
+        return self.__matrix.get(key, 0)
+
 class InformationRetrievalModel:
     
-    def __init__(self, corpus_address:str, query_pipeline: Pipeline, build_pipeline: Pipeline, query_context: dict, build_context: dict) -> None:
+    def __init__(self, corpus_address:str, query_pipeline: Pipeline, build_pipeline: Pipeline, feedback_pipeline: Pipeline, query_context: dict, build_context: dict) -> None:
         """
         Returns the 'ranked_documents' key from the last result of `query_pipeline`.
         
@@ -102,6 +120,7 @@ class InformationRetrievalModel:
         self.build_context = build_context
         self.query_pipeline = query_pipeline
         self.build_pipeline = build_pipeline
+        self.feedback_pipeline = feedback_pipeline
     
     def resolve_query(self, query:str) -> List[dict]:
         """
@@ -118,3 +137,15 @@ class InformationRetrievalModel:
         pipeline = Pipeline(Pipe(lambda x: {"corpus_address": x, **self.build_context}), self.build_pipeline)
         self.build_result = pipeline(self.corpus_address)
         return self.build_result
+
+    def add_relevant_and_non_relevant_documents(self, new_relevant_documents: List[dict], new_non_relevant_documents: List[str]) -> List[dict]:
+        """
+        Adds the relevant and non relevant documents to the model and apply the feedback pipeline
+        """
+        if "relevant_documents" not in self.build_result:
+            self.build_result["relevant_documents"] = []
+        if "non_relevant_documents" not in self.build_result:
+            self.build_result["non_relevant_documents"] = []
+        self.build_result["relevant_documents"] = self.build_result["relevant_documents"].extend(new_relevant_documents)
+        self.build_result["non_relevant_documents"] = self.build_result["non_relevant_documents"].extend(new_non_relevant_documents)
+        self.feedback_pipeline(self.build_result)

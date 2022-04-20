@@ -5,15 +5,6 @@ from ..pipes.pipeline import Pipe, Pipeline
 from .base import *
 
 
-class Matrix:
-    def __init__(self, tokens: List[List[str]]) -> None:
-        self.all_terms = list(set(x for y in tokens for x in y))
-        self.all_terms.sort()
-        self.__matrix = {(t,i): len([y for y in doc if y.lower() == t.lower()]) for t in self.all_terms for i,doc in enumerate(tokens)}
-
-    def __getitem__(self, key: Tuple[str,int]) -> int:
-        return self.__matrix.get(key, 0)
-
 def calculate_idf(context: dict):
     """
     Calculate the inverse document frequency in `documents` key storing 
@@ -21,14 +12,13 @@ def calculate_idf(context: dict):
     """
     idf = {}
     documents = context["documents"]
-    matrix = context.get("term_matrix", Matrix([doc["tokens"] for doc in documents]))
+    matrix = context["term_matrix"]
     
     N = len(documents)
     for term in matrix.all_terms:
         ni = len([i for i in range(len(documents)) if matrix[term, i] > 0])
         idf[term] = log(N/ni)
     
-    context["term_matrix"] = matrix
     context["idf"] = idf
     
     return context
@@ -40,7 +30,7 @@ def convert_doc_to_vec(context: dict, is_query=False):
     the normalize the weight accordingly
     """
     documents = context["documents"] if not is_query else [context["query"]]
-    matrix = context.get("term_matrix", Matrix([doc["tokens"] for doc in context["documents"]]))
+    matrix = context["term_matrix"]
     idf = context.get("idf")
 
     for i in range(len(documents)):
@@ -61,7 +51,6 @@ def convert_doc_to_vec(context: dict, is_query=False):
         
         documents[i]["vector"] = current_vector
 
-    context["term_matrix"] = matrix
     return context
 
 def convert_query_to_vec(context: dict) -> dict:
@@ -77,7 +66,7 @@ def smooth_query_vec(context: dict):
     query = context["query"]
     alpha = context.get("smooth_query_alpha", 0.4)
     idf = context.get("idf")
-    matrix = context.get("term_matrix", Matrix([doc["tokens"] for doc in context["documents"]]))
+    matrix = context["term_matrix"]
     for i,term in enumerate(matrix.all_terms):
         query["vector"][i] = alpha * (idf[term] if idf else 1) + (1 - alpha)*query["vector"][i]
 
@@ -109,7 +98,7 @@ def rank_documents(context: dict):
         s = sim(query["vector"], doc["vector"])
         if s > rank_threshold:
             ranking.append((s, doc))
-    ranking.sort()
+    ranking.sort(key=lambda x: -x[0])
     
     context["ranked_documents"] = ranking
     
@@ -129,4 +118,4 @@ class VectorialModel(InformationRetrievalModel):
         build_context = {
             "language": language
         }
-        super().__init__(corpus_address, query_pipeline, build_pipeline, query_context, build_context)
+        super().__init__(corpus_address, query_pipeline, build_pipeline, Pipeline(lambda x: x), query_context, build_context)

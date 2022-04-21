@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_clone/models/query_response_model.dart';
 import 'package:google_clone/provider/global_provider.dart';
 import 'package:google_clone/provider/main_screen_provider.dart';
 import 'package:google_clone/provider/search_result_provider.dart';
@@ -318,7 +319,9 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                         focusColor: Colors.transparent,
                         hoverColor: Colors.transparent,
                         highlightColor: Colors.transparent,
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pushNamed(context, '/settings');
+                        },
                         child: Container(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
@@ -329,13 +332,13 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    Icons.photo_outlined,
+                                    Icons.settings,
                                     size: 18,
                                     color: Colors.black54,
                                   ),
                                   SizedBox(width: 3),
                                   Text(
-                                    'Images',
+                                    'Settings',
                                     style: TextStyle(
                                       fontSize: 15,
                                       color: Colors.black54,
@@ -360,9 +363,11 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                 height: 0,
                 thickness: 0,
               ),
-              FutureBuilder<Map<String, dynamic>>(
+              FutureBuilder<QueryResponseModel?>(
                 future: searchResultProvider.apiService.fetchData(
-                    context: context, q: widget.q, start: widget.startIndex),
+                    context: context,
+                    query: widget.q,
+                    offset: int.parse(widget.startIndex)),
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     return Column(
@@ -372,7 +377,7 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                         Container(
                           padding: EdgeInsets.only(left: 150, top: 12),
                           child: Text(
-                            "About ${snapshot.data?['searchInformation']['formattedTotalResults']} results (${snapshot.data?['searchInformation']['formattedSearchTime']})",
+                            "About ${snapshot.data?.documents.length ?? 0} results (${snapshot.data?.responseTime ?? 0}) milliseconds",
                             style: TextStyle(
                               fontSize: 15,
                               color: Color(0xFF70757a),
@@ -382,17 +387,24 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                         ListView.builder(
                           physics: NeverScrollableScrollPhysics(),
                           shrinkWrap: true,
-                          itemCount: snapshot.data?['items'].length,
+                          itemCount: snapshot.data?.documents.length,
                           itemBuilder: (context, index) {
                             return Padding(
                               padding: EdgeInsets.only(left: 150, top: 30),
                               child: SearchResultComponent(
-                                linkToGo: snapshot.data?['items'][index]
-                                    ['link'],
-                                link: snapshot.data?['items'][index]
-                                    ['formattedUrl'],
-                                text: snapshot.data?['items'][index]['title'],
-                                desc: snapshot.data?['items'][index]['snippet'],
+                                // TODO Poner la informacion necesaria en los documentos
+                                linkToGo: snapshot
+                                        .data?.documents[index].documentName ??
+                                    "link",
+                                link: snapshot
+                                        .data?.documents[index].documentName ??
+                                    'formattedUrl',
+                                text: snapshot
+                                        .data?.documents[index].documentName ??
+                                    'title',
+                                desc: snapshot
+                                        .data?.documents[index].documentName ??
+                                    'snippet',
                               ),
                             );
                           },

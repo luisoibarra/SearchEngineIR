@@ -19,10 +19,13 @@ def read_documents_from_hard_drive(context: dict) -> dict:
         doc = os.path.join(corpus_address, doc)
         if os.path.isfile(doc):
             with open(doc) as file:
-                documents.append({
-                    "text":file.read(),
-                    "dir": doc,
-                })
+                try:
+                    documents.append({
+                        "text":file.read(),
+                        "dir": doc,
+                    })
+                except:
+                    print("Error reading file", doc)
     context["documents"] = documents
     return context
 

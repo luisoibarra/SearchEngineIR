@@ -109,7 +109,7 @@ class VectorialModel(InformationRetrievalModel):
     def __init__(self, corpus_address: str, smooth_query_alpha= 0.4, language="english", rank_threshold=0.5) -> None:
         # , query_pipeline: Pipeline, build_pipeline: Pipeline, query_context: dict, build_context: dict
         query_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec, smooth_query_vec, rank_documents)
-        build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, calculate_idf, convert_doc_to_vec)
+        build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
         query_context = {
             "smooth_query_alpha": smooth_query_alpha,
             "language": language,

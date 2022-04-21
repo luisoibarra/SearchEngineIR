@@ -1,34 +1,28 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_clone/config/api_keys.dart';
-import 'package:google_clone/json/api_response.dart';
+import 'package:google_clone/models/query_response_model.dart';
+import 'package:google_clone/services/api_configuration_service.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 
 class ApiService {
   bool useDummyData = false;
+  static const _getQueryPath = "query";
 
-  Future<Map<String, dynamic>> fetchData(
+  Future<QueryResponseModel?> fetchData(
       {required BuildContext context,
-      required String q,
-      required String start}) async {
+      required String query,
+      required int offset}) async {
     if (!this.useDummyData) {
-      final response =
-          await http.get(Uri.https("www.googleapis.com", "customsearch/v1", {
-        'key': apiKey,
-        'cx': ctxKey,
-        'q': q,
-        'start': start,
-      }));
-      if (response.statusCode == 200) {
-        final jsonData = response.body;
-        final respData = json.decode(jsonData);
-        return respData;
-      } else {
-        print('request failed');
-        return apiResponse;
-      }
+      final apiConfigurationService =
+          Provider.of<ApiConfigurationService>(context);
+      final uri = await apiConfigurationService.getUrl(_getQueryPath,
+          queryParams: {"query": query, "offset": offset.toString()});
+      final response = await http.get(uri);
+      return QueryResponseModel.fromJson(
+          jsonDecode(response.body) as Map<String, dynamic>);
     }
-    return apiResponse;
+    return null;
   }
 }

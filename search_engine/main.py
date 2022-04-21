@@ -6,7 +6,7 @@ app = FastAPI()
 
 
 @app.get("/query")
-async def get_query_result(query:str) -> QueryResult:
+async def get_query_result(query:str, offset:int) -> QueryResult:
     return get_documents(query)
 
 @app.get("/")

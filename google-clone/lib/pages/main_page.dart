@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_clone/provider/main_screen_provider.dart';
@@ -69,8 +70,8 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                               child: TextField(
                                 onSubmitted: (text) {
                                   if (text.trim() != "")
-                                    Navigator.pushNamed(
-                                        context, '/search?q=${text.trim()}&start=1');
+                                    Navigator.pushNamed(context,
+                                        '/search?q=${text.trim()}&start=1');
                                 },
                                 controller: provider.searchFieldController,
                                 onTap: () {
@@ -91,9 +92,19 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                                   prefixIcon: Padding(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 14),
-                                    child: Icon(
-                                      Icons.search,
-                                      color: Colors.grey,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (mainScreenProvider
+                                                .searchFieldController.text
+                                                .trim() !=
+                                            "")
+                                          Navigator.pushNamed(context,
+                                              '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=1');
+                                      },
+                                      child: Icon(
+                                        Icons.search,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ),
                                   suffixIcon: Padding(
@@ -277,6 +288,16 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                           ),
                           SizedBox(width: 25),
                           HoverText(
+                            text: 'Settings',
+                            textStyle: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 15,
+                            ),
+                            onTap: () {
+                              Navigator.pushNamed(context, '/settings');
+                            },
+                          ),
+                          HoverText(
                             text: 'How Search works',
                             textStyle: TextStyle(
                               color: Colors.grey[700],
@@ -303,14 +324,6 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                             onTap: () {},
                           ),
                           SizedBox(width: 25),
-                          HoverText(
-                            text: 'Settings',
-                            textStyle: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 15,
-                            ),
-                            onTap: () {},
-                          ),
                         ],
                       ),
                     ),

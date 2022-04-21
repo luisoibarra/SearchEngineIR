@@ -14,5 +14,5 @@ model.build()
 def get_documents(query: str) -> QueryResult:
     values = model.resolve_query(query)
     return QueryResult(documents = [
-        Document(title=os.path.split(x["dir"])[-1]) for _,x in values
+        Document(documentName=os.path.split(x["dir"])[-1]) for _,x in values
     ])

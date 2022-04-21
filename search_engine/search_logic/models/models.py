@@ -2,8 +2,9 @@ from pydantic import BaseModel
 from typing import List
 
 class Document(BaseModel):
-    title:str
+    documentName:str
 
 class QueryResult(BaseModel):
     documents: List[Document]
+    responseTime: int = 0
     

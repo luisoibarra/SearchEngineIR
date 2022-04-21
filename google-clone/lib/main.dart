@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_clone/pages/search_results.dart';
+import 'package:google_clone/pages/settings_page.dart';
 import 'package:google_clone/provider/global_provider.dart';
 import 'package:google_clone/provider/search_result_provider.dart';
+import 'package:google_clone/provider/settings_screen_provider.dart';
+import 'package:google_clone/services/api_configuration_service.dart';
+import 'package:google_clone/services/api_service.dart';
 import 'package:provider/provider.dart';
 
 import 'pages/main_page.dart';
@@ -14,7 +18,10 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (context) => MainScreenProvider()),
         ChangeNotifierProvider(create: (context) => SearchResultProvider()),
+        ChangeNotifierProvider(create: (context) => SettingsScreenProvider()),
         ChangeNotifierProvider(create: (context) => GlobalProvider()),
+        Provider(create: (context) => ApiConfigurationService()),
+        // Provider(create: (context) => ApiService()),
       ],
       child: App(),
     ),
@@ -54,6 +61,10 @@ class _AppState extends State<App> {
               ),
               settings: RouteSettings(name: settings.name),
             );
+          case '/settings':
+            return MaterialPageRoute(
+                builder: (context) => SettingsPage(),
+                settings: RouteSettings(name: settings.name));
           default:
             return MaterialPageRoute(
               builder: (context) => GoogleSearchPage(),

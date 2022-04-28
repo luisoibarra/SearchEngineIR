@@ -7,8 +7,14 @@ app = FastAPI()
 
 @app.get("/query")
 async def get_query_result(query:str, offset:int) -> QueryResult:
+    """
+    Returns the ranked documents associated with the `query` skipping `offset`
+    """
     return get_documents(query)
 
-@app.get("/")
-async def get_query_result() -> QueryResult:
-    return get_documents("query") 
+@app.get("/document")
+async def get_query_result(document_id:str) -> str:
+    """
+    Returns document's content associated with the given `document_id`
+    """
+    raise NotImplementedError()

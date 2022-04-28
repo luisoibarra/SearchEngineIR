@@ -16,119 +16,279 @@
 
 \begin{document}
 %
-\title{Contribution Title\thanks{Supported by organization x.}}
+\title{Motor de Búsqueda Vectorial (Título pendiente)}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{First Author\inst{1}\orcidID{0000-1111-2222-3333} \and
-Second Author\inst{2,3}\orcidID{1111-2222-3333-4444} \and
-Third Author\inst{3}\orcidID{2222--3333-4444-5555}}
+\author{Luis Ernesto Ibarra Vázquez\inst{1} \and
+Luis Enrique Dalmau Coopat\inst{2} \and
+Adrian Hernández Pérez\inst{3}}
 %
-\authorrunning{F. Author et al.}
+\authorrunning{Luis Ibarra, Luis Dalmau, Adrian Hernández}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
-\institute{Princeton University, Princeton NJ 08544, USA \and
-Springer Heidelberg, Tiergartenstr. 17, 69121 Heidelberg, Germany
-\email{lncs@springer.com}\\
-\url{http://www.springer.com/gp/computer-science/lncs} \and
-ABC Institute, Rupert-Karls-University Heidelberg, Heidelberg, Germany\\
-\email{\{abc,lncs\}@uni-heidelberg.de}}
+\institute{Universidad de La Habana, La Habana, Cuba\\
+\url{https://www.uh.cu}}
 %
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
-The abstract should briefly summarize the contents of the paper in
-150--250 words.
+% The abstract should briefly summarize the contents of the paper in
+% 150--250 words.
+La creación de motores de búsqueda permiten a los usuarios acceder a la información
+que buscan de manera rápida y eficiente. Este trabajo presenta una implementación de 
+un motor de búsqueda basado en el modelo vectorial. Se presentan la arquitectura y
+algoritmos y procesamientos usados para dicha implementación. Se obtuvieron resultados
+%TODO PONER RESUMEN DE RESULTADOS
 
-\keywords{First keyword  \and Second keyword \and Another keyword.}
+El resultado final es presentado al usuario mediante una interfaz gráfica que permite
+al usuario realizar consultas de manera natural.
+
+\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial.}
 \end{abstract}
-%
-%
-%
 
 \section{Introducción}
 
-Introducción del informe.
+El ámbito de recuperación de información es un área de las Ciencias de la Computación que tiene
+actualmente gran importancia debido al gran volumen de información que se genera cada día en la
+web. Esta información debe de ser encontrada por los usuarios de manera rápida y eficiente y es
+de esta tarea en la cual un motor de búsqueda es necesario. La tarea escencial de un motor de
+búsqueda es la de recuperar documentos que estén asociados a una pregunta planteada por el usuario, 
+esta recuperación tiene que ser de calidad conteniendo información relevante que el usuario pueda
+usar para lograr su objetivo.
+
+En este ámbito se presentan escencialmente tres tipos de modelos de recuperación de los
+cuales surgen nuevas variantes, los tipos son:
+
+\begin{itemize}
+    \item Vectorial
+    \item Probabilístico
+    \item Booleano
+\end{itemize}
+
+%TODO Poner más cosas sobre los modelos?
+
+El objetivo del trabajo consiste en la implementación y evaluación de un motor de búsqueda,
+en este caso se usa el modelo vectorial. Para un fácil uso también es necesaria una manera
+de que el usuario interactúe con este.
+
+El trabajo de divide en varias secciones, primero se analizará la arquitectura del motor de
+búsqueda, luego se presentará el algoritmo y procesamiento usado para la implementación de 
+este, luego se presentará el resultado final del motor de búsqueda. También se presentará una
+sección sobre la implementación de la interfaz gráfica. 
 
 \section{Desarrollo}
 
+Para la implementación del motor de búsqueda se escogió el modelo vectorial. Se escogió este
+modelo por su relativa facilidad de implementación y comprensión teórica, además por su buen
+desempeño sobre los demás modelos existentes. 
+%TODO Seguir ampliando esto a medida que se le agreguen más cosas
+
+\subsection{Arquitectura}
+
+Todo motor de búsqueda consta de tres partes fundamentales a la hora de darle respuesta al usuario
+
+\begin{itemize}
+    \item Recibir una pregunta
+    \item Buscar documentos relevantes a la pregunta
+    \item Devolver los documentos relevantes encontrados
+\end{itemize}
+
+\subsubsection{Motor de búsqueda}
+
+El motor de búsqueda es el núcleo fundamental de la implementación. Un problema fundamental que
+tiene esta etapa es que en la implementación se realizan muchos cambios en el código fuente agregando
+nuevas funcionalidades al procesamiento, además estas funcionalidades generalmente se pueden usar
+de manera independiente para otros procesamientos como por ejemplo la implementación de otro modelo
+dentro del mismo motor de búsqueda. Para poder resolver este problema de una manera sencilla se estructura
+el proyecto pediante una arquitectura de tuberías (pipelines). Esta arquitectura consiste en una serie
+de tuberías que se conectan entre sí, pasando un contexto entre ellas y combinando de forma desacoplada
+los resultados obtenidos de cada tubería. Un ejemplo de lo anterior es que la lectura de los documentos
+es independiente de su procesamiento así que si se quiere cambiar esta funcionalidad es solemente necesario
+cambiar el pedazo del pipeline encargado de esto, otro ejemplo de las ventajas es que el proceso de
+tokenización de los documentos generalmente es el mismo, en el caso de que se quieran implementar varios
+modelos se puede reutilizar este pipeline sin mucho esfuerzo y manteniendo la misma arquitectura \ref{pipeline_fig}.
+
+\subsubsection{Comunicación con el motor de búsqueda}
+
+La comunicación del motor de búsqueda con el exterior se hace a través de una API REST. Con esta
+es posible preguntarle al motor de búsqueda y que este devuelva las respuestas asociadas. Gracias
+a que la comunicación se hace mediante HTTP es posible realizar la implementación de varios clientes
+que consuman de esta y que presenten la información de la manera que más le convenga.\\
+
+Los principales endpoints de esta interfaz se encuentran:
+
+\begin{itemize}
+    \item GET \url{search/?query=query\&offset=offset} Devuelve una lista asociada a los
+documentos relevanes de la búsqueda.
+    \item GET \url{document/?document\_id=document\_id} Devuelve el contenido del documento asociado
+al id dado.
+\end{itemize}
+
+\subsection{Tokenización}
+
+La tokenización es el proceso en el cual se divide una cadena de caracteres en palabras o tokens.
+Estos tokens son luego procesados en dependencia del modelo de búsqueda que se quiera implementar.
+La implementación de la tokenización en el motor de búsqueda se lleva a cabo mediante el uso del
+framework nltk. Esta es dividida principalmente en varias etapas:
+
+\begin{enumerate}
+    \item Convertir el texto en tokens
+    \item Remover las stopwords
+    \item Aplicar stemming a los tokens
+    %TODO Mantener actualizado con el desarrollo del proyecto
+\end{enumerate}
+
+Mediante estos proceso se llega al final de esta etapa con una lista de tokens procesada la cual
+representa el documento. Esta lista es luego convertida a la representación necesitada en cada modelo
+para su procesamiento.
+
+\subsection{Modelo Vectorial}
+
+\subsubsection{Representación de los documentos}
+
+Para el procesamiento del modelo vectorial se utiliza una representación de documentos en forma de
+vectores. Esta representación se obtiene a partir de la tokenización previa de los documentos. La
+representación de los documentos se obtiene a partir de la siguiente fórmula:
+
+\begin{equation}
+    w_{ij} = \frac{tf_{ij}}{\max_{k} tf_{kj}}idf_{j}
+\end{equation}
+
+Donde $w_{ij}$ representa el peso asociado al término $i$ en el documento $j$ y $tf_{ij}$ el número de veces que
+se repite el término $i$ en el documento $j$. $idf_{j}$ es la frecuencia inversa del documento $j$ en la
+colección de documentos calculada por $\log{\frac{N}{n_j}}$ donde $n_j$ es la cantidad de documentos
+en donde aparece el término $j$.
+
+\subsubsection{Representación de la pregunta}
+
+La representación de la pregunta en el modelo vectorial es la misma que la representación de los 
+documentos, pero con una diferencia que se aplica a la pregunta una fórmula diferente.
+
+\begin{equation}
+    (\alpha idf_i + (1-\alpha)\frac{tf_{ij}}{\max_{k} tf_{kj}}) idf_i
+\end{equation}
+
+En este caso $\alpha$ es un hiperparámetro para suavizar cuyo rol es disminuir
+la contribución del segundo término \cite{alphaManning}.
+
+\subsubsection{Ranking de documentos}
+
+Para el ordenamiento de los documentos se utiliza la representación de la pregunta y de los documentos
+en su forma vectorial. Para el cálculo de la similitud entre ambas se utiliza el coseno entre
+ambos vectores:
+
+\begin{equation}
+    sim(q,d_i) = \cos(q, d_i) = \frac{q \cdot d_i}{||q|| ||d_i||}
+\end{equation}
+
+Una vez se tienen estos valores se ordenan de mayor a menor y son devueltos en ese orden al
+usuario.
+
+\subsubsection{Retroalimentación}
+
+%TODO Implementar
+Implementar algoritmo de retroalimentación
+
+\subsubsection{Expansión de query}
+
+%TODO Implementar
+Implementar algoritmo de expnsión de query
+
+\subsection{Interfaz gráfica}
+
+La interfaz gráfica actúa como un cliente REST que consume los servicios de búsqueda. Esta
+se presenta como un navegador web que permite realizar consultas. El usuario también puede
+ver el contenido del documento recuperado si lo desea \ref{ui_fig}.
+
+Fue implementada en Flutter pudiendo ser compilada a varios sistemas operativos como Android,
+iOS además de a web.
+
+\subsection{Evaluación}
+
+%TODO
+Hablar del corpus de evaluación y exponer las métricas estudiadas y que tan bien se desempeña el
+motor de búsqueda
+
 \section{Conclusiones}
 
+%TODO
+Hacer conclusiones
 
-\section{First Section}
-\subsection{A Subsection Sample}
-Please note that the first paragraph of a section or subsection is
-not indented. The first paragraph that follows a table, figure,
-equation etc. does not need an indent, either.
+% \section{First Section}
+% \subsection{A Subsection Sample}
+% Please note that the first paragraph of a section or subsection is
+% not indented. The first paragraph that follows a table, figure,
+% equation etc. does not need an indent, either.
 
-Subsequent paragraphs, however, are indented.
+% Subsequent paragraphs, however, are indented.
 
-\subsubsection{Sample Heading (Third Level)} Only two levels of
-headings should be numbered. Lower level headings remain unnumbered;
-they are formatted as run-in headings.
+% \subsubsection{Sample Heading (Third Level)} Only two levels of
+% headings should be numbered. Lower level headings remain unnumbered;
+% they are formatted as run-in headings.
 
-\paragraph{Sample Heading (Fourth Level)}
-The contribution should contain no more than four levels of
-headings. Table~\ref{tab1} gives a summary of all heading levels.
+% \paragraph{Sample Heading (Fourth Level)}
+% The contribution should contain no more than four levels of
+% headings. Table~\ref{tab1} gives a summary of all heading levels.
 
-\begin{table}
-\caption{Table captions should be placed above the
-tables.}\label{tab1}
-\begin{tabular}{|l|l|l|}
-\hline
-Heading level &  Example & Font size and style\\
-\hline
-Title (centered) &  {\Large\bfseries Lecture Notes} & 14 point, bold\\
-1st-level heading &  {\large\bfseries 1 Introduction} & 12 point, bold\\
-2nd-level heading & {\bfseries 2.1 Printing Area} & 10 point, bold\\
-3rd-level heading & {\bfseries Run-in Heading in Bold.} Text follows & 10 point, bold\\
-4th-level heading & {\itshape Lowest Level Heading.} Text follows & 10 point, italic\\
-\hline
-\end{tabular}
-\end{table}
+% \begin{table}
+% \caption{Table captions should be placed above the
+% tables.}\label{tab1}
+% \begin{tabular}{|l|l|l|}
+% \hline
+% Heading level &  Example & Font size and style\\
+% \hline
+% Title (centered) &  {\Large\bfseries Lecture Notes} & 14 point, bold\\
+% 1st-level heading &  {\large\bfseries 1 Introduction} & 12 point, bold\\
+% 2nd-level heading & {\bfseries 2.1 Printing Area} & 10 point, bold\\
+% 3rd-level heading & {\bfseries Run-in Heading in Bold.} Text follows & 10 point, bold\\
+% 4th-level heading & {\itshape Lowest Level Heading.} Text follows & 10 point, italic\\
+% \hline
+% \end{tabular}
+% \end{table}
 
 
-\noindent Displayed equations are centered and set on a separate
-line.
-\begin{equation}
-x + y = z
-\end{equation}
-Please try to avoid rasterized images for line-art diagrams and
-schemas. Whenever possible, use vector graphics instead (see
-Fig.~\ref{fig1}).
+% \noindent Displayed equations are centered and set on a separate
+% line.
+% \begin{equation}
+% x + y = z
+% \end{equation}
+% Please try to avoid rasterized images for line-art diagrams and
+% schemas. Whenever possible, use vector graphics instead (see
+% Fig.~\ref{fig1}).
 
-\begin{figure}
-\includegraphics[width=\textwidth]{fig1.eps}
-\caption{A figure caption is always placed below the illustration.
-Please note that short captions are centered, while long ones are
-justified by the macro package automatically.} \label{fig1}
-\end{figure}
+% \begin{figure}
+% % \includegraphics[width=\textwidth]{fig1.eps}
+% \caption{A figure caption is always placed below the illustration.
+% Please note that short captions are centered, while long ones are
+% justified by the macro package automatically.} \label{fig1}
+% \end{figure}
 
-\begin{theorem}
-This is a sample theorem. The run-in heading is set in bold, while
-the following text appears in italics. Definitions, lemmas,
-propositions, and corollaries are styled the same way.
-\end{theorem}
-%
-% the environments 'definition', 'lemma', 'proposition', 'corollary',
-% 'remark', and 'example' are defined in the LLNCS documentclass as well.
-%
-\begin{proof}
-Proofs, examples, and remarks have the initial word in italics,
-while the following text appears in normal font.
-\end{proof}
-For citations of references, we prefer the use of square brackets
-and consecutive numbers. Citations using labels or the author/year
-convention are also acceptable. The following bibliography provides
-a sample reference list with entries for journal
-articles~\cite{ref_article1}, an LNCS chapter~\cite{ref_lncs1}, a
-book~\cite{ref_book1}, proceedings without editors~\cite{ref_proc1},
-and a homepage~\cite{ref_url1}. Multiple citations are grouped
-\cite{ref_article1,ref_lncs1,ref_book1},
-\cite{ref_article1,ref_book1,ref_proc1,ref_url1}.
+% \begin{theorem}
+% This is a sample theorem. The run-in heading is set in bold, while
+% the following text appears in italics. Definitions, lemmas,
+% propositions, and corollaries are styled the same way.
+% \end{theorem}
+% %
+% % the environments 'definition', 'lemma', 'proposition', 'corollary',
+% % 'remark', and 'example' are defined in the LLNCS documentclass as well.
+% %
+% \begin{proof}
+% Proofs, examples, and remarks have the initial word in italics,
+% while the following text appears in normal font.
+% \end{proof}
+% For citations of references, we prefer the use of square brackets
+% and consecutive numbers. Citations using labels or the author/year
+% convention are also acceptable. The following bibliography provides
+% a sample reference list with entries for journal
+% articles~\cite{ref_article1}, an LNCS chapter~\cite{ref_lncs1}, a
+% book~\cite{ref_book1}, proceedings without editors~\cite{ref_proc1},
+% and a homepage~\cite{ref_url1}. Multiple citations are grouped
+% \cite{ref_article1,ref_lncs1,ref_book1},
+% \cite{ref_article1,ref_book1,ref_proc1,ref_url1}.
 %
 % ---- Bibliography ----
 %
@@ -138,25 +298,44 @@ and a homepage~\cite{ref_url1}. Multiple citations are grouped
 % \bibliographystyle{splncs04}
 % \bibliography{mybibliography}
 %
+\section{Anexos}
+
+%TODO Poner ejemplo de como se puede reutilizar un pipeline para realizar otros pipelines
+\begin{figure}
+% \includegraphics[width=\textwidth]{pipeline.jpg}
+\caption{Ejemplo de pipelines} \label{pipeline_fig}
+\end{figure}
+
+\begin{figure}
+% \includegraphics[width=\textwidth]{user_interfae.jpg}
+\caption{Interfaz visual} \label{ui_fig}
+\end{figure}
+    
 \begin{thebibliography}{8}
-\bibitem{ref_article1}
-Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
+% \bibitem{ref_article1}
+% Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
 
-\bibitem{ref_lncs1}
-Author, F., Author, S.: Title of a proceedings paper. In: Editor,
-F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
-Springer, Heidelberg (2016). \doi{10.10007/1234567890}
+% \bibitem{ref_lncs1}
+% Author, F., Author, S.: Title of a proceedings paper. In: Editor,
+% F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
+% Springer, Heidelberg (2016). \doi{10.10007/1234567890}
 
-\bibitem{ref_book1}
-Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
-Location (1999)
+% \bibitem{ref_book1}
+% Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
+% Location (1999)
 
-\bibitem{ref_proc1}
-Author, A.-B.: Contribution title. In: 9th International Proceedings
-on Proceedings, pp. 1--2. Publisher, Location (2010)
+% \bibitem{ref_proc1}
+% Author, A.-B.: Contribution title. In: 9th International Proceedings
+% on Proceedings, pp. 1--2. Publisher, Location (2010)
 
-\bibitem{ref_url1}
-LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
-Oct 2017
+% \bibitem{ref_url1}
+% LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
+% Oct 2017
+
+\bibitem{alphaManning}
+Christopher D. Manning, Prabhakar Raghavan, and Hinrich Schütze:
+An Introduction to Information Retrieval. Online edition, pp. 127 Cambridge University Press,
+Cambridge, England (2009)
+
 \end{thebibliography}
 \end{document}

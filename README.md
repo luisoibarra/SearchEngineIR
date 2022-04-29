@@ -15,3 +15,4 @@ El objetivo principal es mostrar los documentos relevantes de un corpus dado una
 - Mejorar el modelo vectorial usando un modelo aternativo
 - Añadir expansión de query
 - Añadir retroalimentación
+- Agregar spelling correction

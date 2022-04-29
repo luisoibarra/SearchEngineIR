@@ -124,7 +124,7 @@ Los principales endpoints de esta interfaz se encuentran:
 \begin{itemize}
     \item GET \url{search/?query=query\&offset=offset} Devuelve una lista asociada a los
 documentos relevanes de la búsqueda.
-    \item GET \url{document/?document\_id=document\_id} Devuelve el contenido del documento asociado
+    \item GET \url{document/?document\_dir=document\_dir} Devuelve el contenido del documento asociado
 al id dado.
 \end{itemize}
 
@@ -190,8 +190,20 @@ usuario.
 
 \subsubsection{Retroalimentación}
 
-%TODO Implementar
-Implementar algoritmo de retroalimentación
+Para la retroalimentación se eligió el algoritmo de Rocchio debido a su simplicidad. Este se basa 
+en el cálculo de centroides de un conjunto de documentos relevantes y no relevantes a una query
+y su posterior suma ponderada con el objetivo de mover el vector query hacia el conjunto de 
+documentos relevantes y alejarlo del conjunto de documentos no relevantes. La fórmula final sería
+
+\begin{equation}
+    q_f = \alpha q_0 + \beta \frac{\sum_{d_r \in D_r} d_r}{|D_r|} - \ro \frac{\sum_{d_{nr} \in D_{nr}} d_{nr}}{|D_{nr}|} 
+\end{equation}
+
+Dado que la relevancia depende de la query, se crea una estructura de datos la cual guarda esta correspondencia. 
+En un principio esta estructura de datos solamente guarda los vectores relevantes o no que coincidan exactamente
+con la query, aunque se pueden crear variantes de esta estructura que devuelvan los documentos relevantes o no
+relevantes que estén en una zona cercana y no exacta aumentando así el recuperado de estos documentos.
+%TODO Implementar esta última idea, ver qué funciona mejor y ponerlo en el informe
 
 \subsubsection{Expansión de query}
 

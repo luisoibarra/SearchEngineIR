@@ -1,5 +1,7 @@
 from typing import List
 
+import numpy as np
+
 from ..pipes.pipeline import Pipe, Pipeline 
 import os
 from typing import List, Tuple
@@ -94,6 +96,22 @@ def add_term_matrix(context: dict) -> dict:
     context["term_matrix"] = matrix
     return context
 
+def add_feedback_vectors(context: dict):
+    """
+    Adds the `new_relevant_documents` and the `new_not_relevant_documents` to
+    the `feedback_manager` associated with `query`
+    """
+    feedback_manager = context.get("feedback_manager")
+    if feedback_manager:
+        query = context["query"]["vector"]
+        new_relevant_documents = context.get("new_relevant_documents", [])
+        new_not_relevant_documents = context.get("new_not_relevant_documents", [])
+        for rel in new_relevant_documents:
+            feedback_manager.mark_relevant(query, rel["vector"])
+        for not_rel in new_not_relevant_documents:
+            feedback_manager.mark_not_relevant(query, not_rel["vector"])
+    return context
+
 class Matrix:
     def __init__(self, tokens: List[List[str]]) -> None:
         self.all_terms = list(set(x for y in tokens for x in y))
@@ -105,7 +123,8 @@ class Matrix:
 
 class InformationRetrievalModel:
     
-    def __init__(self, corpus_address:str, query_pipeline: Pipeline, build_pipeline: Pipeline, feedback_pipeline: Pipeline, query_context: dict, build_context: dict) -> None:
+    def __init__(self, corpus_address:str, query_pipeline: Pipeline, query_to_vec_pipeline: Pipeline, build_pipeline: Pipeline, query_context: dict, build_context: dict,
+                 feedback_pipeline: Pipeline=None) -> None:
         """
         Returns the 'ranked_documents' key from the last result of `query_pipeline`.
         
@@ -122,14 +141,15 @@ class InformationRetrievalModel:
         self.query_context = query_context
         self.build_context = build_context
         self.query_pipeline = query_pipeline
+        self.query_to_vec_pipeline = query_to_vec_pipeline
         self.build_pipeline = build_pipeline
-        self.feedback_pipeline = feedback_pipeline
+        self.feedback_pipeline = feedback_pipeline if feedback_pipeline else Pipeline(add_feedback_vectors)
     
     def resolve_query(self, query:str) -> List[dict]:
         """
         Returns an ordered list of the ranked relevant documents.
         """
-        pipeline = Pipeline(Pipe(lambda x: {"corpus_address": x, "query": {"text": query}, **self.query_context, **self.build_result}), self.query_pipeline)
+        pipeline = Pipeline(Pipe(lambda x: {"corpus_address": x, "query": {"text": query}, **self.query_context, **self.build_result}), self.query_to_vec_pipeline, self.query_pipeline)
         result = pipeline(query)
         return result["ranked_documents"]
     
@@ -141,14 +161,62 @@ class InformationRetrievalModel:
         self.build_result = pipeline(self.corpus_address)
         return self.build_result
 
-    def add_relevant_and_non_relevant_documents(self, new_relevant_documents: List[dict], new_non_relevant_documents: List[str]) -> List[dict]:
+    def add_relevant_and_not_relevant_documents(self, query:dict, new_relevant_documents: List[dict], new_not_relevant_documents: List[str]):
         """
-        Adds the relevant and non relevant documents to the model and apply the feedback pipeline
+        Adds the relevant and not relevant documents to the model and apply the feedback pipeline
         """
-        if "relevant_documents" not in self.build_result:
-            self.build_result["relevant_documents"] = []
-        if "non_relevant_documents" not in self.build_result:
-            self.build_result["non_relevant_documents"] = []
-        self.build_result["relevant_documents"] = self.build_result["relevant_documents"].extend(new_relevant_documents)
-        self.build_result["non_relevant_documents"] = self.build_result["non_relevant_documents"].extend(new_non_relevant_documents)
-        self.feedback_pipeline(self.build_result)
+        feedback_vector = self.build_result.copy()
+        feedback_vector["query"] = self.query_to_vec_pipeline({"query": {"text":query}, **self.query_context, **feedback_vector})["query"]
+        feedback_vector["new_relevant_documents"] = new_relevant_documents
+        feedback_vector["new_not_relevant_documents"] = new_not_relevant_documents
+        self.feedback_pipeline(feedback_vector)
+
+class FeedbackManager:
+    """
+    Base class to manage the relevant and not relevant documents for a given query 
+    """
+
+    def __init__(self) -> None:
+        self.relevant_dict = {}
+        self.not_relevant_dict = {}
+
+    def _mark_document(self, query, document, relevant_dict):
+
+        # Adds the document in a set with all relevant or not relevant documents of the query
+        query = tuple(query)
+        document = tuple(document)
+        if query in relevant_dict:
+            relevant_dict[query].update([document])
+        else:
+            relevant_dict[query] = set([document])
+
+    def mark_relevant(self, query, document):
+        """
+        Mark the document as relevant to the query
+        """
+        self._mark_document(query, document, self.relevant_dict)
+    
+    def mark_not_relevant(self, query, document):
+        """
+        Mark the document as not relevant to the query
+        """
+        self._mark_document(query, document, self.not_relevant_dict)
+
+    def get_relevants(self, query):
+        """
+        Return the list of relevant documents given the query
+        """
+        try:
+            return [np.array(x) for x in self.relevant_dict[tuple(query)]]
+        except KeyError:
+            return []
+
+    def get_not_relevants(self, query):
+        """
+        Return the list of relevant documents given the query
+        """
+        try:
+            return [np.array(x) for x in self.not_relevant_dict[tuple(query)]]
+        except KeyError:
+            return []
+    

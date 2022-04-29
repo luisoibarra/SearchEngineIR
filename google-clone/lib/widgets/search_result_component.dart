@@ -6,12 +6,17 @@ class SearchResultComponent extends StatelessWidget {
   final String link;
   final String text;
   final String desc;
+  final Function() onRateUp;
+  final Function() onRateDown;
+
   const SearchResultComponent({
     Key? key,
     required this.linkToGo,
     required this.link,
     required this.text,
     required this.desc,
+    required this.onRateUp,
+    required this.onRateDown,
   }) : super(key: key);
 
   @override
@@ -26,9 +31,7 @@ class SearchResultComponent extends StatelessWidget {
             link: link,
             text: text,
             onTap: () async {
-              if (await canLaunch(linkToGo)) {
-                await launch(linkToGo);
-              }
+              Navigator.pushNamed(context, "/document?documentDir=$linkToGo");
             },
           ),
         ),
@@ -36,6 +39,12 @@ class SearchResultComponent extends StatelessWidget {
           desc,
           style: TextStyle(fontSize: 14, color: Color(0xFF4d5156)),
         ),
+        Row(
+          children: [
+            IconButton(onPressed: onRateUp, icon: Icon(Icons.thumb_up)),
+            IconButton(onPressed: onRateDown, icon: Icon(Icons.thumb_down)),
+          ],
+        )
       ],
     );
   }

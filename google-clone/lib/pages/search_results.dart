@@ -394,7 +394,7 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                               child: SearchResultComponent(
                                 // TODO Poner la informacion necesaria en los documentos
                                 linkToGo: snapshot
-                                        .data?.documents[index].documentName ??
+                                        .data?.documents[index].documentDir ??
                                     "link",
                                 link: snapshot
                                         .data?.documents[index].documentName ??
@@ -405,6 +405,14 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                                 desc: snapshot
                                         .data?.documents[index].documentName ??
                                     'snippet',
+                                onRateUp: () {
+                                  searchResultProvider.applyFeedback(context, widget.q, snapshot
+                                        .data!.documents[index].documentDir, true);
+                                },
+                                onRateDown: () async {
+                                  await searchResultProvider.applyFeedback(context, widget.q, snapshot
+                                        .data!.documents[index].documentDir, false);
+                                }
                               ),
                             );
                           },

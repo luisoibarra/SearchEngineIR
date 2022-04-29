@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_clone/pages/document_page.dart';
 import 'package:google_clone/pages/search_results.dart';
 import 'package:google_clone/pages/settings_page.dart';
+import 'package:google_clone/provider/document_screen_provider.dart';
 import 'package:google_clone/provider/global_provider.dart';
 import 'package:google_clone/provider/search_result_provider.dart';
 import 'package:google_clone/provider/settings_screen_provider.dart';
@@ -20,6 +22,7 @@ void main() {
         ChangeNotifierProvider(create: (context) => SearchResultProvider()),
         ChangeNotifierProvider(create: (context) => SettingsScreenProvider()),
         ChangeNotifierProvider(create: (context) => GlobalProvider()),
+        ChangeNotifierProvider(create: (context) => DocumentScreenProvider()),
         Provider(create: (context) => ApiConfigurationService()),
         // Provider(create: (context) => ApiService()),
       ],
@@ -64,6 +67,12 @@ class _AppState extends State<App> {
           case '/settings':
             return MaterialPageRoute(
                 builder: (context) => SettingsPage(),
+                settings: RouteSettings(name: settings.name));
+          case '/document':
+            return MaterialPageRoute(
+                builder: (context) => DocumentPage(
+                  documentDir: settingsURI.queryParameters["documentDir"] ?? "",
+                ),
                 settings: RouteSettings(name: settings.name));
           default:
             return MaterialPageRoute(

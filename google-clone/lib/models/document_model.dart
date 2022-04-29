@@ -6,8 +6,9 @@ part 'document_model.g.dart';
 class DocumentModel {
 
   final String documentName;
+  final String documentDir;
 
-  DocumentModel({required this.documentName});
+  DocumentModel({required this.documentName, required this.documentDir});
 
   factory DocumentModel.fromJson(Map<String, dynamic> json) => _$DocumentModelFromJson(json);
 

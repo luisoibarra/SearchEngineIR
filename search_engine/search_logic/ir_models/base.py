@@ -15,12 +15,15 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     Read documents from the directory stored in `corpus_address` key 
     and saved the raw texts in `raw_documents` key
     """
+    
     documents = []
     corpus_address = context["corpus_address"]
     # Recursively read all files in the directory
     for root, dirs, files in os.walk(corpus_address):
+        print("Actual dir",root)
         for file in files:
-            with open(os.path.join(root, file), "r") as f:
+            print("File processed",file)
+            with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
                 try:
                     documents.append({
                         "text": f.read(),
@@ -37,8 +40,8 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     #                     "text":file.read(),
     #                     "dir": doc,
     #                 })
-                except:
-                    print("Error reading file", file)
+                except Exception as e:
+                    print("Error reading file", file, e)
     context["documents"] = documents
     return context
 

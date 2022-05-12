@@ -72,6 +72,36 @@ def smooth_query_vec(context: dict):
 
     return context
 
+def add_feedback_to_query(context: dict):
+    """
+    Applies the Rocchio Algorithm to the given `query` if
+    `feedback_manager` is given
+    """
+    feedback_manager = context.get("feedback_manager")
+    if not feedback_manager:
+        return context
+    query = context["query"]
+    alpha = context.get("alpha_rocchio", 1)
+    beta = context.get("beta_rocchio", 0.75)
+    ro = context.get("ro_rocchio", 0.1)
+
+    relevants = feedback_manager.get_relevants(query["vector"])
+    not_relevants = feedback_manager.get_not_relevants(query["vector"])
+
+    def vec_mean(vectors, query):
+        if not vectors:
+            return np.zeros_like(query)
+        s = sum(vectors)
+        return s/len(vectors)
+
+    # Apply Rocchio algorithm
+    feedback_vec = alpha * query["vector"] + beta * vec_mean(relevants, query["vector"]) - ro * vec_mean(not_relevants, query["vector"])
+    feedback_vec = np.array([max(0,x) for x in feedback_vec])
+    query["vector"] = feedback_vec
+
+    return context
+
+
 def rank_documents(context: dict):
     """
     Ranks the `documents` with the `query` returning in the result in
@@ -106,16 +136,21 @@ def rank_documents(context: dict):
 
 class VectorialModel(InformationRetrievalModel):
     
-    def __init__(self, corpus_address: str, smooth_query_alpha= 0.4, language="english", rank_threshold=0.5) -> None:
-        # , query_pipeline: Pipeline, build_pipeline: Pipeline, query_context: dict, build_context: dict
-        query_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec, smooth_query_vec, rank_documents)
+    def __init__(self, corpus_address: str, smooth_query_alpha= 0.4, language="english", rank_threshold=0.5,
+                 alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1) -> None:
+        query_to_vec_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec)
+        query_pipeline = Pipeline(add_feedback_to_query, smooth_query_vec, rank_documents)
         build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
         query_context = {
             "smooth_query_alpha": smooth_query_alpha,
             "language": language,
             "rank_threshold": rank_threshold,
+            "alpha_rocchio": alpha_rocchio,
+            "beta_rocchio": beta_rocchio,
+            "ro_rocchio": ro_rocchio,
         }
         build_context = {
-            "language": language
+            "language": language,
+            "feedback_manager": FeedbackManager()
         }
-        super().__init__(corpus_address, query_pipeline, build_pipeline, Pipeline(lambda x: x), query_context, build_context)
+        super().__init__(corpus_address, query_pipeline, query_to_vec_pipeline, build_pipeline, query_context, build_context)

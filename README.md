@@ -12,3 +12,7 @@ El objetivo principal es mostrar los documentos relevantes de un corpus dado una
 - Algunos problemas con la UI de Flutter
 - Agregar corpus
 - Hacer informe
+- Mejorar el modelo vectorial usando un modelo aternativo
+- Añadir expansión de query
+- Añadir retroalimentación
+- Agregar spelling correction

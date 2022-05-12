@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 class ApiService {
   bool useDummyData = false;
   static const _getQueryPath = "query";
+  static const _getDocumentPath = "document";
+  static const _applyFeedbackPath = "feedback";
 
   Future<QueryResponseModel?> fetchData(
       {required BuildContext context,
@@ -24,5 +26,34 @@ class ApiService {
           jsonDecode(response.body) as Map<String, dynamic>);
     }
     return null;
+  }
+
+  Future<String?> fetchDocument(
+      {required BuildContext context,
+      required String documentDir}) async {
+    if (!this.useDummyData) {
+      final apiConfigurationService =
+          Provider.of<ApiConfigurationService>(context);
+      final uri = await apiConfigurationService.getUrl(_getDocumentPath,
+          queryParams: {"document_dir": documentDir});
+      final response = await http.get(uri);
+      return response.body;
+    }
+    return null;
+  }
+
+  Future<bool> applyFeedback({
+    required BuildContext context,
+    required String query,
+    required List<String> relevantDocumentsDirs,
+    required List<String> notRelevantDocumentsDirs
+  }) async {
+      final apiConfigurationService =
+          Provider.of<ApiConfigurationService>(context, listen: false);
+      final uri = await apiConfigurationService.getUrl(_applyFeedbackPath);
+      final json = {"query": query, "relevants": relevantDocumentsDirs, "not_relevants": notRelevantDocumentsDirs};
+      final jsonBody = jsonEncode(json);
+      final response = await http.post(uri, headers: {"Content-Type": "application/json"}, body: jsonBody);
+      return response.statusCode == 200;
   }
 }

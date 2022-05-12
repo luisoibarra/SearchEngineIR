@@ -15,17 +15,28 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     """
     documents = []
     corpus_address = context["corpus_address"]
-    for doc in os.listdir(corpus_address):
-        doc = os.path.join(corpus_address, doc)
-        if os.path.isfile(doc):
-            with open(doc) as file:
+    # Recursively read all files in the directory
+    for root, dirs, files in os.walk(corpus_address):
+        for file in files:
+            with open(os.path.join(root, file), "r") as f:
                 try:
                     documents.append({
-                        "text":file.read(),
-                        "dir": doc,
-                    })
+                        "text": f.read(),
+                        "dir": root,
+                        "topic": root.split("/")[-1]
+                        })
+    # for doc in os.listdir(corpus_address):
+    #     doc = os.path.join(corpus_address, doc) 
+        
+    #     if os.path.isfile(doc):
+    #         with open(doc) as file:
+    #             try:
+    #                 documents.append({
+    #                     "text":file.read(),
+    #                     "dir": doc,
+    #                 })
                 except:
-                    print("Error reading file", doc)
+                    print("Error reading file", file)
     context["documents"] = documents
     return context
 
@@ -152,3 +163,5 @@ class InformationRetrievalModel:
         self.build_result["relevant_documents"] = self.build_result["relevant_documents"].extend(new_relevant_documents)
         self.build_result["non_relevant_documents"] = self.build_result["non_relevant_documents"].extend(new_non_relevant_documents)
         self.feedback_pipeline(self.build_result)
+
+# CODE HERE Agregar pipe para ver estadisticas 

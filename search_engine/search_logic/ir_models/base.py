@@ -24,12 +24,12 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     # Recursively read all files in the directory
     for root, dirs, files in os.walk(corpus_address):
         print("Actual dir",root)
-        if root not in [
-            # "/Users/danielquintans/Documents/SearchEngineIR/search_engine/search_logic/corpus/cars",
-            # "/Users/danielquintans/Documents/SearchEngineIR/search_engine/search_logic/corpus/sport hockey",
-            # "/Users/danielquintans/Documents/SearchEngineIR/search_engine/search_logic/corpus/atheism",
-            # "/Users/danielquintans/Documents/SearchEngineIR/search_engine/search_logic/corpus/computer system ibm pc hardware",
-            "/Users/danielquintans/Documents/SearchEngineIR/search_engine/search_logic/corpus/random",
+        if root.split("/")[-1] not in [
+            # "cars",
+            # "sport hockey",
+            # "atheism",
+            # "computer system ibm pc hardware",
+            "random",
         ] or len(documents) > 1:
             continue
         for file in files:

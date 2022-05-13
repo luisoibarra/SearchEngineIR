@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_clone/models/query_response_model.dart';
@@ -536,7 +535,16 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                       ],
                     );
                   }
-                  return Container();
+                  return Container(
+                    padding: EdgeInsets.only(left: 150, top: 12),
+                    child: Text(
+                      "No results found try another search",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Color(0xFF70757a),
+                      ),
+                    ),
+                  );
                 },
               ),
             ],

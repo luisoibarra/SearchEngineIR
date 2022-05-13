@@ -28,11 +28,11 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     for root, dirs, files in os.walk(corpus_address):
         print("Actual dir topics", root.split("/")[-1].split())
         if root.split("/")[-1] not in [
-            # "cars",
-            # "sport hockey",
-            # "atheism",
-            # "computer system ibm pc hardware",
-            "random",
+             "cars",
+             "sport hockey",
+             "atheism",
+             "computer system ibm pc hardware",
+             "random",
         ] or len(documents) > 1:
             continue
         for file in files:
@@ -41,6 +41,7 @@ def read_documents_from_hard_drive(context: dict) -> dict:
                 try:
                     documents.append({
                         "text": f.read(),
+                        "root": root,
                         "dir": os.path.join(root, file),
                         "topic": root.split("/")[-1].split()
                         })
@@ -202,6 +203,8 @@ def add_stopwords(context: dict) -> dict:
     punct = set(string.punctuation)
     ignore = stop_words.union(punct)
     context["stop_words"] = ignore
+    
+    
     return context
 
 def add_stemmer(context: dict) -> dict:
@@ -223,22 +226,29 @@ def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs=
     Adds the given `vectorizer` to the context with a custom tokenizer function
     """
     language = context.get("language", "english")
-    stopwords = context.get("stop_words",[])
 
     def tokenize(text):
+        stopwords = context.get("stop_words")
+        englishwords = set(words.words())
         stemmer = context.get("stemmer")
         lemmatizer = context.get("lemmatizer")
         tokens = tokenizer(text, language=language)
+        if stopwords:
+            tokens = [w for w in tokens  # this last and could be removed
+                            if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
+            #print("Stop words removed")    
         if lemmatizer:
             tokens = [lemmatizer.lemmatize(x) for x in tokens]
+            #print("Lemmatizing applied")
         if stemmer:
             tokens = [stemmer.stem(x) for x in tokens]
+            #print("Stemming applied")
         
         return tokens
        
 
 
-    vectorizer = vectorizer(stop_words=stopwords, tokenizer=tokenize, **vectorizer_kwargs)
+    vectorizer = vectorizer(tokenizer=tokenize, **vectorizer_kwargs)
     context["vectorizer"] = vectorizer
     
     return context
@@ -284,7 +294,7 @@ def add_vector_to_query(context: dict) -> dict:
 
 class VecMatrix:
     def __init__(self, vectorizer:CountVectorizer, matrix) -> None:
-        self.all_terms = vectorizer.get_feature_names_out()
+        self.all_terms = vectorizer.get_feature_names()
         self.matrix = matrix
         self.__index_map = {x:i for i,x in enumerate(self.all_terms)}
 

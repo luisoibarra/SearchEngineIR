@@ -216,6 +216,7 @@ def add_lemmatizer(context: dict) -> dict:
     Adds the `lemmatizer` used to the context
     """
     context["lemmatizer"]= WordNetLemmatizer()
+    return context
 
 def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs={}, tokenizer=word_tokenize) -> dict:
     """

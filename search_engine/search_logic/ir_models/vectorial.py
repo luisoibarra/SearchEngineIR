@@ -3,6 +3,7 @@ from typing import List, Tuple
 import numpy as np
 from ..pipes.pipeline import Pipe, Pipeline
 from .base import *
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 def calculate_idf(context: dict):
@@ -134,13 +135,37 @@ def rank_documents(context: dict):
     
     return context
 
+def add_vectorizer_vectorial(context: dict) -> dict:
+    """
+    Build and add a TF-IDF vectorizer to the context
+    """
+    return add_vectorizer(context, vectorizer=TfidfVectorizer)
+
+def add_idf(context: dict):
+    """
+    Build an idf dictionary based in the `vectorizer` and the `term_matrix`. 
+    The vectorizer must have an idf_ porperty that holds the idf for the i
+    term matching matrix.all_terms index
+    """
+    vectorizer = context["vectorizer"]
+    matrix = context["term_matrix"]
+    context["idf"] = {term: vectorizer.idf_[i] for i,term in enumerate(matrix.all_terms)}
+    return context
+
 class VectorialModel(InformationRetrievalModel):
     
     def __init__(self, corpus_address: str, smooth_query_alpha= 0.4, language="english", rank_threshold=0.5,
                  alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1) -> None:
-        query_to_vec_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec)
+        
+        ## MANUAL VECTORIZATION
+        # query_to_vec_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec)
+        # build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
+        
+        ## SKLEARN VECTORIZATION
+        query_to_vec_pipeline = Pipeline(build_query_matrix, add_vector_to_query)
+        build_pipeline = Pipeline(read_documents_from_hard_drive, add_stopwords, add_stemmer, add_vectorizer_vectorial, build_matrix, add_idf, add_vector_to_doc)
+        
         query_pipeline = Pipeline(add_feedback_to_query, smooth_query_vec, rank_documents)
-        build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
         query_context = {
             "smooth_query_alpha": smooth_query_alpha,
             "language": language,

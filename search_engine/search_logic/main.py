@@ -17,10 +17,12 @@ def get_documents(query: str) -> QueryResult:
     e = t.time()
     return QueryResult(
         documents = [
-            Document(
-                documentName=os.path.split(x["dir"])[-1],
-                documentDir=x["dir"]
-            ) for _,x in values
+            # Document(
+            #     documentName=os.path.split(x["dir"])[-1],
+            #     documentDir=x["dir"]
+            # ) for _,x in values
+            Document(documentName="Doc1", documentDir="Someplace"),
+            Document(documentName="Doc2", documentDir="Someplace"),
         ],
         responseTime=int((e - s) * 1000),
         query=query,

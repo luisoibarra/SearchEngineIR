@@ -20,7 +20,8 @@
             "args": [
                 "main:app"
             ],
-            "jinja": true
+            "jinja": true,
+            "justMyCode": true
         }
     ]
 }

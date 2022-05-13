@@ -138,9 +138,9 @@ class VectorialModel(InformationRetrievalModel):
     
     def __init__(self, corpus_address: str, smooth_query_alpha= 0.4, language="english", rank_threshold=0.5,
                  alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1) -> None:
-        query_to_vec_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec)
+        query_to_vec_pipeline = Pipeline(tokenize_query, remove_stop_words_query,lemmatizing_query, stemming_words_query, convert_query_to_vec)
         query_pipeline = Pipeline(add_feedback_to_query, smooth_query_vec, rank_documents)
-        build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
+        build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words,lemmatizing_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
         query_context = {
             "smooth_query_alpha": smooth_query_alpha,
             "language": language,

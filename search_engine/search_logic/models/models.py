@@ -4,6 +4,7 @@ from typing import List
 class Document(BaseModel):
     documentName:str
     documentDir:str
+    documentTopic:List[str]
 
 class QueryResult(BaseModel):
     documents: List[Document]

@@ -11,9 +11,11 @@ model = VectorialModel(CORPUS)
 
 model.build()
 
-def get_documents(query: str) -> QueryResult:
+print("Model built successfully")
+
+def get_documents(query: str,offset:int = 10) -> QueryResult:
     s = t.time()
-    values = model.resolve_query(query)
+    values = model.resolve_query(query)[:offset]
     e = t.time()
     return QueryResult(
         documents = [

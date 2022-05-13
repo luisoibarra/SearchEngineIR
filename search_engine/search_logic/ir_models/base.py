@@ -1,4 +1,4 @@
-from typing import List
+from typing import Callable, List
 
 import numpy as np
 import sklearn
@@ -11,9 +11,11 @@ from nltk.corpus import words
 import string
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
+
 from nltk import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
+# READ PIPES
 def read_documents_from_hard_drive(context: dict) -> dict:
     """
     Read documents from the directory stored in `corpus_address` key 
@@ -25,8 +27,16 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     # Recursively read all files in the directory
     for root, dirs, files in os.walk(corpus_address):
         print("Actual dir topics", root.split("/")[-1].split())
+        if root.split("/")[-1] not in [
+            # "cars",
+            # "sport hockey",
+            # "atheism",
+            # "computer system ibm pc hardware",
+            "random",
+        ] or len(documents) > 1:
+            continue
         for file in files:
-            #print("File processed",file)
+            # print("File processed",file)
             with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
                 try:
                     documents.append({
@@ -48,7 +58,10 @@ def read_documents_from_hard_drive(context: dict) -> dict:
                     print("Error reading file", file, e)
     context["documents"] = documents
     print("Documents read", len(documents))
+    print("End document collecting")
     return context
+
+## MANUAL TEXT PROCESSING
 
 def tokenize_documents(context: dict, is_query=False) -> dict:
     """
@@ -73,8 +86,7 @@ def remove_stop_words(context: dict, is_query=False) -> dict:
     Remove the stop words and punctuation signs from `tokens` key in the documents
     """
     tokenized_documents = context["documents"] if not is_query else [context["query"]]
-    language = context.get("language")
-    language = language if language else 'english'
+    language = context.get("language", "english")
     stop_words = set(stopwords.words(language))
     punct = set(string.punctuation)
     ignore = stop_words.union(punct)
@@ -150,8 +162,6 @@ def add_term_matrix(context: dict) -> dict:
             term_matrix[token].append(doc["dir"])
     context["term_matrix"] = term_matrix
     
-    
-    
     print("Term matrix created")
     return context
 
@@ -180,6 +190,105 @@ class Matrix:
 
     def __getitem__(self, key: Tuple[str,int]) -> int:
         return self.__matrix.get(key, 0)
+
+## SKLEARN VECTORIZER
+
+def add_stopwords(context: dict) -> dict:
+    """
+    Adds the `stop_words` to the context
+    """
+    language = context.get("language", "english")
+    stop_words = set(stopwords.words(language))
+    punct = set(string.punctuation)
+    ignore = stop_words.union(punct)
+    context["stop_words"] = ignore
+    return context
+
+def add_stemmer(context: dict) -> dict:
+    """
+    Adds the `stemmer` used to the context
+    """
+    context["stemmer"] = PorterStemmer()
+    return context
+
+def add_lemmatizer(context: dict) -> dict:
+    """
+    Adds the `lemmatizer` used to the context
+    """
+    context["lemmatizer"]= WordNetLemmatizer()
+
+def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs={}, tokenizer=word_tokenize) -> dict:
+    """
+    Adds the given `vectorizer` to the context with a custom tokenizer function
+    """
+    language = context.get("language", "english")
+    stopwords = context.get("stop_words",[])
+
+    def tokenize(text):
+        stemmer = context.get("stemmer")
+        lemmatizer = context.get("lemmatizer")
+        tokens = tokenizer(text, language=language)
+        if lemmatizer:
+            tokens = [lemmatizer.lemmatize(x) for x in tokens]
+        if stemmer:
+            tokens = [stemmer.stem(x) for x in tokens]
+        
+        return tokens
+       
+
+
+    vectorizer = vectorizer(stop_words=stopwords, tokenizer=tokenize, **vectorizer_kwargs)
+    context["vectorizer"] = vectorizer
+    
+    return context
+
+def build_matrix(context:dict, is_query=False) -> dict:
+    """
+    Builds a `term_matrix` based on the `vectorizer` provided
+    """
+    documents = context["documents"] if not is_query else [context["query"]]
+    vectorizer = context["vectorizer"]
+    
+    text_documents = [doc["text"] for doc in documents]
+    
+    if is_query:
+        matrix = vectorizer.transform(text_documents)
+    else:
+        matrix = vectorizer.fit_transform(text_documents)
+    vec_matrix = VecMatrix(vectorizer, matrix)
+
+    context["term_matrix" if not is_query else "query_matrix"] = vec_matrix
+
+    return context
+
+def build_query_matrix(context: dict) -> dict:
+    return build_matrix(context, is_query=True)
+
+def add_vector_to_doc(context: dict, is_query=False) -> dict:
+    """
+    Add the document's vector representation to the doc dictionary based on
+    the `term_matrix`
+    """
+    documents = context["documents"] if not is_query else [context["query"]]
+    matrix = context["term_matrix" if not is_query else "query_matrix"]
+
+    for i, doc in enumerate(documents):
+        vec = matrix.matrix[i, :]
+        doc["vector"] = vec.toarray()[0]
+    
+    return context
+
+def add_vector_to_query(context: dict) -> dict:
+    return add_vector_to_doc(context, is_query=True)
+
+class VecMatrix:
+    def __init__(self, vectorizer:CountVectorizer, matrix) -> None:
+        self.all_terms = vectorizer.get_feature_names_out()
+        self.matrix = matrix
+        self.__index_map = {x:i for i,x in enumerate(self.all_terms)}
+
+    def __getitem__(self, key: Tuple[str,int]) -> int:
+        return self.matrix[key[1], self.__index_map[key[0]]]
 
 class InformationRetrievalModel:
     
@@ -219,6 +328,7 @@ class InformationRetrievalModel:
         """
         pipeline = Pipeline(Pipe(lambda x: {"corpus_address": x, **self.build_context}), self.build_pipeline)
         self.build_result = pipeline(self.corpus_address)
+        print("build ended")
         return self.build_result
 
     def add_relevant_and_not_relevant_documents(self, query:dict, new_relevant_documents: List[dict], new_not_relevant_documents: List[str]):

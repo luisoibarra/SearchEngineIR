@@ -1,18 +1,21 @@
 from typing import Callable, List
 
 import numpy as np
+import sklearn
 
 from ..pipes.pipeline import Pipe, Pipeline 
 import os
 from typing import List, Tuple
 from nltk.corpus import stopwords
+from nltk.corpus import words
 import string
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
-from sklearn.feature_extraction.text import CountVectorizer
 
-## READ PIPES
+from nltk import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
+# READ PIPES
 def read_documents_from_hard_drive(context: dict) -> dict:
     """
     Read documents from the directory stored in `corpus_address` key 
@@ -23,13 +26,13 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     corpus_address = context["corpus_address"]
     # Recursively read all files in the directory
     for root, dirs, files in os.walk(corpus_address):
-        print("Actual dir",root)
+        print("Actual dir topics", root.split("/")[-1].split())
         if root.split("/")[-1] not in [
-            # "cars",
-            # "sport hockey",
-            # "atheism",
-            # "computer system ibm pc hardware",
-            "random",
+             "cars",
+             "sport hockey",
+             "atheism",
+             "computer system ibm pc hardware",
+             "random",
         ] or len(documents) > 1:
             continue
         for file in files:
@@ -38,8 +41,9 @@ def read_documents_from_hard_drive(context: dict) -> dict:
                 try:
                     documents.append({
                         "text": f.read(),
-                        "dir": root,
-                        "topic": root.split("/")[-1]
+                        "root": root,
+                        "dir": os.path.join(root, file),
+                        "topic": root.split("/")[-1].split()
                         })
     # for doc in os.listdir(corpus_address):
     #     doc = os.path.join(corpus_address, doc) 
@@ -54,6 +58,7 @@ def read_documents_from_hard_drive(context: dict) -> dict:
                 except Exception as e:
                     print("Error reading file", file, e)
     context["documents"] = documents
+    print("Documents read", len(documents))
     print("End document collecting")
     return context
 
@@ -71,6 +76,7 @@ def tokenize_documents(context: dict, is_query=False) -> dict:
     for raw_doc in raw_documents:
         tokens = word_tokenize(raw_doc["text"], language=language)
         raw_doc["tokens"] = tokens
+    print("Tokens extracted")
     return context
 
 def tokenize_query(context: dict) -> dict:
@@ -85,16 +91,41 @@ def remove_stop_words(context: dict, is_query=False) -> dict:
     stop_words = set(stopwords.words(language))
     punct = set(string.punctuation)
     ignore = stop_words.union(punct)
+    englishwords = set(words.words())
     
+
     for doc in tokenized_documents:
         # Filtering stopword
-        no_stopwords = [w for w in doc["tokens"] if not w.lower() in ignore]
+        no_stopwords = [w for w in doc["tokens"]                  #this last and could be removed
+                        if not w.lower() in ignore and w.isalpha() and w.lower() in englishwords]
         doc["tokens"] = no_stopwords
-    
+    print("Stop words removed")
     return context
 
 def remove_stop_words_query(context: dict) -> dict:
     return remove_stop_words(context, True)
+
+def lemmatizing_words(context: dict, is_query=False) -> dict:
+    """
+    Lemmatize the words in `tokens` key in documents
+    """
+    documents = context["documents"] if not is_query else [context["query"]]
+    language = context.get("language")
+    language = language if language else 'english'
+    lemma = WordNetLemmatizer()
+
+    for doc in documents:
+        # Lemmatizing tokens
+        lemmatized_tokens = [lemma.lemmatize(w.lower()) for w in doc["tokens"]]
+        doc["tokens"] = lemmatized_tokens
+        lemmatized_topic = [lemma.lemmatize(w.lower()) for w in doc["topic"]]
+        doc["topic"] = lemmatized_topic
+    print("Lemmatizing applied")
+    return context
+
+def lemmatizing_query(context: dict) -> dict:
+    return lemmatizing_words(context, True)
+
 
 def stemming_words(context: dict, is_query=False) -> dict:
     """
@@ -106,10 +137,14 @@ def stemming_words(context: dict, is_query=False) -> dict:
     stemmer = PorterStemmer()
     
     for doc in documents:
+
         # Stemming tokens
-        stemmed = [stemmer.stem(w) for w in doc["tokens"]]
+        stemmed = [stemmer.stem(w.lower()) for w in doc["tokens"]]
+        stemmed_topic = [stemmer.stem(w.lower()) for w in doc["topic"]]
         doc["tokens"] = stemmed
-    
+        doc["topic"] = stemmed_topic
+
+    print(" Stemming applied")
     return context
 
 def stemming_words_query(context: dict) -> dict:
@@ -117,10 +152,18 @@ def stemming_words_query(context: dict) -> dict:
 
 def add_term_matrix(context: dict) -> dict:
     """
-    Adds a term-document matrix in `term_matrix` key
+    Adds a inverted index dictionary in `term_matrix` key
     """
-    matrix = Matrix([doc["tokens"] for doc in context["documents"]])
-    context["term_matrix"] = matrix
+    documents = context["documents"]
+    term_matrix = {}
+    for doc in documents:
+        for token in doc["tokens"]:
+            if token not in term_matrix.keys():
+                term_matrix[token] = []
+            term_matrix[token].append(doc["dir"])
+    context["term_matrix"] = term_matrix
+    
+    print("Term matrix created")
     return context
 
 def add_feedback_vectors(context: dict):
@@ -137,6 +180,7 @@ def add_feedback_vectors(context: dict):
             feedback_manager.mark_relevant(query, rel["vector"])
         for not_rel in new_not_relevant_documents:
             feedback_manager.mark_not_relevant(query, not_rel["vector"])
+        print("Feedback vectors added")
     return context
 
 class Matrix:
@@ -159,6 +203,8 @@ def add_stopwords(context: dict) -> dict:
     punct = set(string.punctuation)
     ignore = stop_words.union(punct)
     context["stop_words"] = ignore
+    
+    
     return context
 
 def add_stemmer(context: dict) -> dict:
@@ -168,21 +214,41 @@ def add_stemmer(context: dict) -> dict:
     context["stemmer"] = PorterStemmer()
     return context
 
+def add_lemmatizer(context: dict) -> dict:
+    """
+    Adds the `lemmatizer` used to the context
+    """
+    context["lemmatizer"]= WordNetLemmatizer()
+    return context
+
 def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs={}, tokenizer=word_tokenize) -> dict:
     """
     Adds the given `vectorizer` to the context with a custom tokenizer function
     """
     language = context.get("language", "english")
-    stopwords = context.get("stop_words",[])
 
     def tokenize(text):
+        stopwords = context.get("stop_words")
+        englishwords = set(words.words())
         stemmer = context.get("stemmer")
+        lemmatizer = context.get("lemmatizer")
         tokens = tokenizer(text, language=language)
+        if stopwords:
+            tokens = [w for w in tokens  # this last and could be removed
+                            if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
+            #print("Stop words removed")    
+        if lemmatizer:
+            tokens = [lemmatizer.lemmatize(x) for x in tokens]
+            #print("Lemmatizing applied")
         if stemmer:
-            return [stemmer.stem(x) for x in tokens]
+            tokens = [stemmer.stem(x) for x in tokens]
+            #print("Stemming applied")
+        
         return tokens
+       
 
-    vectorizer = vectorizer(stop_words=stopwords, tokenizer=tokenize, **vectorizer_kwargs)
+
+    vectorizer = vectorizer(tokenizer=tokenize, **vectorizer_kwargs)
     context["vectorizer"] = vectorizer
     
     return context
@@ -228,7 +294,7 @@ def add_vector_to_query(context: dict) -> dict:
 
 class VecMatrix:
     def __init__(self, vectorizer:CountVectorizer, matrix) -> None:
-        self.all_terms = vectorizer.get_feature_names_out()
+        self.all_terms = vectorizer.get_feature_names()
         self.matrix = matrix
         self.__index_map = {x:i for i,x in enumerate(self.all_terms)}
 
@@ -328,7 +394,7 @@ class FeedbackManager:
 
     def get_not_relevants(self, query):
         """
-        Return the list of relevant documents given the query
+        Return the list of non relevant documents given the query
         """
         try:
             return [np.array(x) for x in self.not_relevant_dict[tuple(query)]]

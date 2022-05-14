@@ -41,7 +41,7 @@ def get_documents(query: str,offset:int) -> QueryResult:
 
     # Check if a word of the query is similar to docs topic words
     relevants_docs_recover = [doc for doc in docs if any(similarity(word,doc["topic"]) for word in query.split())]
-    non_relevants_docs_recover = [doc for doc in docs if not any(similarity(word,doc["topic"]) for word in query.split())]
+    non_relevants_docs_recover = [doc for doc in docs if not doc in relevants_docs_recover]
     
     relevant_docs_dirs = set([doc["root"] for doc in relevants_docs_recover])
     non_relevant_docs_dirs = set([doc["root"] for doc in non_relevants_docs_recover])
@@ -56,7 +56,9 @@ def get_documents(query: str,offset:int) -> QueryResult:
     
     
     return QueryResult(
-        documents = [Document(documentName=doc["dir"].split("/")[-1], documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
+        documents = [Document(documentName=doc["dir"].split("/")[-1], documentDir=doc["dir"], 
+        documentTopic=doc["topic"]) for _,doc in values],
+
         responseTime=int((e - s) * 1000),
         precision=len(relevants_docs_recover)/(len(relevants_docs_recover)+len(non_relevants_docs_recover)),
         recall=len(relevants_docs_recover)/relevant_count,

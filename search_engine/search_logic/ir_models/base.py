@@ -32,7 +32,7 @@ def read_documents_from_hard_drive(context: dict) -> dict:
              "sport hockey",
              "atheism",
              "computer system ibm pc hardware",
-             "random",
+             
         ]:
             continue
         for file in files:

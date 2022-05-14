@@ -2,6 +2,7 @@ from typing import List
 from .models.models import Document, FeedbackModel, QueryResult
 from .ir_models.vectorial import VectorialModel
 from nltk.corpus import wordnet
+from nltk import edit_distance
 
 import os
 import time as t
@@ -20,19 +21,27 @@ def get_documents(query: str,offset:int) -> QueryResult:
     docs= [doc for _,doc in values]
     e = t.time()
 
-    def similarity(word,topics,threshold=0.5):
+    def similarity(word,topics,threshold=0.7):
         """
         Check similarity using wu-palmer formula between word and any of the topic of the list of topics
         """
         for topic in topics:
-            syn1 = wordnet.synsets(word)[0]
-            syn2 = wordnet.synsets(topic)[0]
-            if syn1.wup_similarity(syn2) > threshold:
+            syn1 = wordnet.synsets(word)
+            syn2 = wordnet.synsets(topic)
+            levenshtein = 1.0 - \
+                edit_distance(word, topic)/float(max(len(word), len(topic)))
+            if len(syn1)*len(syn2)==0 : 
+                return levenshtein>threshold
+            syn1=syn1[0]
+            syn2=syn2[0]
+            
+            if syn1.wup_similarity(syn2) > threshold or levenshtein > threshold:
                 return True
+        return False
 
     # Check if a word of the query is similar to docs topic words
     relevants_docs_recover = [doc for doc in docs if any(similarity(word,doc["topic"]) for word in query.split())]
-    non_relevants_docs_recover = [doc for doc in docs if not any(word in doc["topic"] for word in query.split())]
+    non_relevants_docs_recover = [doc for doc in docs if not any(similarity(word,doc["topic"]) for word in query.split())]
     
     relevant_docs_dirs = set([doc["root"] for doc in relevants_docs_recover])
     non_relevant_docs_dirs = set([doc["root"] for doc in non_relevants_docs_recover])

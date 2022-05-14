@@ -33,7 +33,7 @@ def read_documents_from_hard_drive(context: dict) -> dict:
              "atheism",
              "computer system ibm pc hardware",
              "random",
-        ] or len(documents) > 1:
+        ]:
             continue
         for file in files:
             # print("File processed",file)
@@ -45,16 +45,6 @@ def read_documents_from_hard_drive(context: dict) -> dict:
                         "dir": os.path.join(root, file),
                         "topic": root.split("/")[-1].split()
                         })
-    # for doc in os.listdir(corpus_address):
-    #     doc = os.path.join(corpus_address, doc) 
-        
-    #     if os.path.isfile(doc):
-    #         with open(doc) as file:
-    #             try:
-    #                 documents.append({
-    #                     "text":file.read(),
-    #                     "dir": doc,
-    #                 })
                 except Exception as e:
                     print("Error reading file", file, e)
     context["documents"] = documents
@@ -203,6 +193,7 @@ def add_stopwords(context: dict) -> dict:
     punct = set(string.punctuation)
     ignore = stop_words.union(punct)
     context["stop_words"] = ignore
+    context["englishwords"] = set(words.words())
     
     
     return context
@@ -229,13 +220,13 @@ def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs=
 
     def tokenize(text):
         stopwords = context.get("stop_words")
-        englishwords = set(words.words())
+        englishwords = context.get("englishwords")
         stemmer = context.get("stemmer")
-        lemmatizer = context.get("lemmatizer")
+        lemmatizer = None#context.get("lemmatizer")
         tokens = tokenizer(text, language=language)
         if stopwords:
             tokens = [w for w in tokens  # this last and could be removed
-                            if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
+                            if not w.lower() in stopwords and w.isalpha() ]#and w.lower() in englishwords]
             #print("Stop words removed")    
         if lemmatizer:
             tokens = [lemmatizer.lemmatize(x) for x in tokens]

@@ -40,8 +40,8 @@ Adrian Hernández Pérez\inst{3}}
 % 150--250 words.
 La creación de motores de búsqueda permiten a los usuarios acceder a la información
 que buscan de manera rápida y eficiente. Este trabajo presenta una implementación de 
-un motor de búsqueda basado en el modelo vectorial. Se presentan la arquitectura y
-algoritmos y procesamientos usados para dicha implementación. Se obtuvieron resultados
+un motor de búsqueda basado en el modelo vectorial. Se presentan la arquitectura,
+algoritmos y procesamientos usados para dicha implementación. Se obtuvieron resultados ...
 %TODO PONER RESUMEN DE RESULTADOS
 
 El resultado final es presentado al usuario mediante una interfaz gráfica que permite
@@ -80,14 +80,7 @@ búsqueda, luego se presentará el algoritmo y procesamiento usado para la imple
 este, luego se presentará el resultado final del motor de búsqueda. También se presentará una
 sección sobre la implementación de la interfaz gráfica. 
 
-\section{Desarrollo}
-
-Para la implementación del motor de búsqueda se escogió el modelo vectorial. Se escogió este
-modelo por su relativa facilidad de implementación y comprensión teórica, además por su buen
-desempeño sobre los demás modelos existentes. 
-%TODO Seguir ampliando esto a medida que se le agreguen más cosas
-
-\subsection{Arquitectura}
+\section{Arquitectura}
 
 Todo motor de búsqueda consta de tres partes fundamentales a la hora de darle respuesta al usuario
 
@@ -97,11 +90,11 @@ Todo motor de búsqueda consta de tres partes fundamentales a la hora de darle r
     \item Devolver los documentos relevantes encontrados
 \end{itemize}
 
-\subsubsection{Motor de búsqueda}
+\subsection{Flujo de datos del motor de búsqueda}
 
 El motor de búsqueda es el núcleo fundamental de la implementación. Un problema fundamental que
-tiene esta etapa es que en la implementación se realizan muchos cambios en el código fuente agregando
-nuevas funcionalidades al procesamiento, además estas funcionalidades generalmente se pueden usar
+tiene la etapa de desarrolo es que en esta se realizan muchos cambios en el código fuente agregando
+o cambiando funcionalidades al procesamiento, además estas funcionalidades generalmente se pueden usar
 de manera independiente para otros procesamientos como por ejemplo la implementación de otro modelo
 dentro del mismo motor de búsqueda. Para poder resolver este problema de una manera sencilla se estructura
 el proyecto pediante una arquitectura de tuberías (pipelines). Esta arquitectura consiste en una serie
@@ -112,14 +105,14 @@ cambiar el pedazo del pipeline encargado de esto, otro ejemplo de las ventajas e
 tokenización de los documentos generalmente es el mismo, en el caso de que se quieran implementar varios
 modelos se puede reutilizar este pipeline sin mucho esfuerzo y manteniendo la misma arquitectura \ref{pipeline_fig}.
 
-\subsubsection{Comunicación con el motor de búsqueda}
+\subsection{Comunicación con el motor de búsqueda}
 
 La comunicación del motor de búsqueda con el exterior se hace a través de una API REST. Con esta
 es posible preguntarle al motor de búsqueda y que este devuelva las respuestas asociadas. Gracias
 a que la comunicación se hace mediante HTTP es posible realizar la implementación de varios clientes
-que consuman de esta y que presenten la información de la manera que más le convenga.\\
+que consuman de esta y que presenten la información de la manera que más le convenga al cliente.\\
 
-Los principales endpoints de esta interfaz se encuentran:
+Los principales endpoints de esta interfaz son:
 
 \begin{itemize}
     \item GET \url{search/?query=query\&offset=offset} Devuelve una lista asociada a los
@@ -127,6 +120,8 @@ documentos relevanes de la búsqueda.
     \item GET \url{document/?document\_dir=document\_dir} Devuelve el contenido del documento asociado
 al id dado.
 \end{itemize}
+
+\section{Implementación del motor de búsqueda}
 
 \subsection{Tokenización}
 
@@ -137,14 +132,18 @@ framework nltk. Esta es dividida principalmente en varias etapas:
 
 \begin{enumerate}
     \item Convertir el texto en tokens
+    \item Limpiar los tokens
     \item Remover las stopwords
     \item Aplicar stemming a los tokens
+    \item Aplicar lemmatizing a los tokens
     %TODO Mantener actualizado con el desarrollo del proyecto
 \end{enumerate}
 
 Mediante estos proceso se llega al final de esta etapa con una lista de tokens procesada la cual
 representa el documento. Esta lista es luego convertida a la representación necesitada en cada modelo
 para su procesamiento.
+
+Este procesamiento puede ser el mismo independientemente del tipo de modelo utilizado.
 
 \subsection{Modelo Vectorial}
 
@@ -196,7 +195,7 @@ y su posterior suma ponderada con el objetivo de mover el vector query hacia el 
 documentos relevantes y alejarlo del conjunto de documentos no relevantes. La fórmula final sería
 
 \begin{equation}
-    q_f = \alpha q_0 + \beta \frac{\sum_{d_r \in D_r} d_r}{|D_r|} - \ro \frac{\sum_{d_{nr} \in D_{nr}} d_{nr}}{|D_{nr}|} 
+    q_f = \alpha q_0 + \beta \frac{\sum_{d_r \in D_r} d_r}{|D_r|} - \gamma \frac{\sum_{d_{nr} \in D_{nr}} d_{nr}}{|D_{nr}|} 
 \end{equation}
 
 Dado que la relevancia depende de la query, se crea una estructura de datos la cual guarda esta correspondencia. 
@@ -210,20 +209,31 @@ relevantes que estén en una zona cercana y no exacta aumentando así el recuper
 %TODO Implementar
 Implementar algoritmo de expnsión de query
 
-\subsection{Interfaz gráfica}
+\section{Interfaz gráfica}
 
 La interfaz gráfica actúa como un cliente REST que consume los servicios de búsqueda. Esta
-se presenta como un navegador web que permite realizar consultas. El usuario también puede
-ver el contenido del documento recuperado si lo desea \ref{ui_fig}.
+se presenta como un navegador web que le permite realizar todas las interacciones necesarias
+con el motor de búsqueda \ref{ui_fig}.
+
+Entre las acciones posibles a realizar se encuentran:
+
+\begin{itemize}
+
+\item Hacer una consulta.
+\item Ver el contenido de un documento.
+\item Dar feedback mediante like o dislike.
+%TODO Mantener actualizada
+
+\end{itemize}
 
 Fue implementada en Flutter pudiendo ser compilada a varios sistemas operativos como Android,
 iOS además de a web.
 
-\subsection{Evaluación}
+\section{Evaluación}
 
 %TODO
 Hablar del corpus de evaluación y exponer las métricas estudiadas y que tan bien se desempeña el
-motor de búsqueda
+motor de búsqueda.
 
 \section{Conclusiones}
 
@@ -314,12 +324,12 @@ Hacer conclusiones
 
 %TODO Poner ejemplo de como se puede reutilizar un pipeline para realizar otros pipelines
 \begin{figure}
-% \includegraphics[width=\textwidth]{pipeline.jpg}
+\includegraphics[width=\textwidth]{pipeline.jpg}
 \caption{Ejemplo de pipelines} \label{pipeline_fig}
 \end{figure}
 
 \begin{figure}
-% \includegraphics[width=\textwidth]{user_interfae.jpg}
+\includegraphics[width=\textwidth]{ui.jpg}
 \caption{Interfaz visual} \label{ui_fig}
 \end{figure}
     

@@ -18,9 +18,16 @@
             "request": "launch",
             "module": "uvicorn",
             "args": [
-                "main:app"
+                "api:app"
             ],
             "jinja": true
+        },
+        {
+            "name": "Streamlit",
+            "type": "python",
+            "request": "launch",
+            "module": "streamlit",
+            "args": ["run", "visual.py"]
         }
     ]
 }

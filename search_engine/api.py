@@ -1,7 +1,6 @@
-from search_logic.models.models import FeedbackModel, QueryResult
+from models.models import FeedbackModel, QueryResult
 from fastapi import FastAPI
-from search_logic import get_documents, get_document_content, apply_feedback_to_model
-import uvicorn
+from api_model import get_documents, get_document_content, apply_feedback_to_model
 
 app = FastAPI()
 
@@ -29,4 +28,5 @@ async def apply_feedback(feedback: FeedbackModel):
     apply_feedback_to_model(feedback)
 
 # if __name__ == "__main__":
+#     import uvicorn
 #     uvicorn.run(app, host="0.0.0.0", port=8000)

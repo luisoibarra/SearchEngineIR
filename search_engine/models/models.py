@@ -12,9 +12,9 @@ class QueryResult(BaseModel):
     Query response in milliseconds
     """
     responseTime: int = 0
-    precision: float = 0
-    recall: float = 0
-    f1: float = 0
+    # precision: float = 0
+    # recall: float = 0
+    # f1: float = 0
     topic: str = ""
     query:str
     queryExpansions: List[str]

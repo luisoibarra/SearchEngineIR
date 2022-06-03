@@ -367,7 +367,16 @@ class InformationRetrievalModel:
         """
         Returns an ordered list of the ranked relevant documents.
         """
-        pipeline = Pipeline(Pipe(lambda x: {"corpus_address": x, "query": {"text": query}, **self.query_context, **self.build_result}), self.query_to_vec_pipeline, self.query_pipeline)
+        pipeline = Pipeline(
+            Pipe(
+                lambda x: {
+                    "corpus_address": x, 
+                    "query": {"text": query}, 
+                    **self.query_context, **self.build_result
+                }), 
+            self.query_to_vec_pipeline, 
+            self.query_pipeline,
+        )
         result = pipeline(query)
         return result["ranked_documents"]
     
@@ -375,7 +384,14 @@ class InformationRetrievalModel:
         """
         Builds the model according the documents returning the context
         """
-        pipeline = Pipeline(Pipe(lambda x: {"corpus_address": x, **self.build_context}), self.build_pipeline)
+        pipeline = Pipeline(
+            Pipe(
+                lambda x: {
+                    "corpus_address": x, 
+                    **self.build_context
+                }), 
+            self.build_pipeline,
+        )
         self.build_result = pipeline(self.corpus_address)
         print("build ended")
         return self.build_result

@@ -52,3 +52,6 @@ El objetivo principal es mostrar los documentos relevantes de un corpus dado una
 - Añadir retroalimentación
 - Agregar spelling correction
 
+HACER AHORA
+- Visual Streamlit
+- test con CRANFIELD dataset (https://ir-datasets.com/cranfield.html), instalar el paquete y hacer pipeline de testing.

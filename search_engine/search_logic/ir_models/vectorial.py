@@ -140,7 +140,7 @@ def add_vectorizer_vectorial(context: dict) -> dict:
     """
     Build and add a TF-IDF vectorizer to the context
     """
-    return add_vectorizer(context, vectorizer=TfidfVectorizer)
+    return add_vectorizer(context, vectorizer_class=TfidfVectorizer)
 
 def add_idf(context: dict):
     """
@@ -163,8 +163,8 @@ class VectorialModel(InformationRetrievalModel):
         # build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
         
         ## SKLEARN VECTORIZATION
-        query_to_vec_pipeline = Pipeline(build_query_matrix, add_vector_to_query)
-        build_pipeline = Pipeline(read_documents_from_hard_drive, add_stopwords,add_lemmatizer, add_stemmer, add_vectorizer_vectorial, build_matrix, add_idf, add_vector_to_doc)
+        query_to_vec_pipeline = Pipeline(apply_text_processing_query, build_query_matrix, add_vector_to_query)
+        build_pipeline = Pipeline(read_documents_from_hard_drive, add_stopwords,add_lemmatizer, add_stemmer, add_vectorizer_vectorial, apply_text_processing, build_matrix, add_idf, add_vector_to_doc)
         
         query_pipeline = Pipeline(add_feedback_to_query, smooth_query_vec, rank_documents)
         query_context = {

@@ -1,8 +1,10 @@
+from pathlib import Path
+from re import A
 from typing import Callable, List
 
 import numpy as np
-import sklearn
 
+from .utils import get_object, save_object
 from ..pipes.pipeline import Pipe, Pipeline 
 import os
 from typing import List, Tuple
@@ -26,16 +28,18 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     corpus_address = context["corpus_address"]
     # Recursively read all files in the directory
     for root, dirs, files in os.walk(corpus_address):
-        print("Actual dir topics", root.split("/")[-1].split())
-        if root.split("/")[-1] not in [
-             "cars",
-             "sport hockey",
-             "atheism",
-             "computer system ibm pc hardware",
-             "random",
-        ] or len(documents) > 1:
-            continue
+        # print("Actual dir topics", root.split("/")[-1].split())
+        # if root.split("/")[-1] not in [
+        #      "cars",
+        #      "sport hockey",
+        #      "atheism",
+        #      "computer system ibm pc hardware",
+        #      "random",
+        # ]:
+        #     continue
         for file in files:
+            # if len(documents) > 5:
+            #     break
             # print("File processed",file)
             with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
                 try:
@@ -221,18 +225,29 @@ def add_lemmatizer(context: dict) -> dict:
     context["lemmatizer"]= WordNetLemmatizer()
     return context
 
-def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs={}, tokenizer=word_tokenize) -> dict:
+def apply_text_processing_query(context: dict, tokenizer=word_tokenize) -> dict:
     """
-    Adds the given `vectorizer` to the context with a custom tokenizer function
+    Apply all preprocessing to query before creating the vector matrix
     """
-    language = context.get("language", "english")
+    return apply_text_processing(context, tokenizer, is_query=True)
 
-    def tokenize(text):
-        stopwords = context.get("stop_words")
-        englishwords = set(words.words())
-        stemmer = context.get("stemmer")
-        lemmatizer = context.get("lemmatizer")
-        tokens = tokenizer(text, language=language)
+def apply_text_processing(context: dict, tokenizer=word_tokenize, is_query=False) -> dict:
+    """
+    Apply all preprocessing to text before creating the vector matrix
+    """
+    if not is_query and context.get("vectorizer_fitted"):
+        # Processing not needed
+        return context
+
+    language = context.get("language", "english")
+    documents = context["documents"] if not is_query else [context["query"]]
+    stopwords = context.get("stop_words")
+    stemmer = context.get("stemmer")
+    lemmatizer = context.get("lemmatizer")
+    englishwords = set(words.words())
+
+    for doc in documents:
+        tokens = tokenizer(doc['text'], language=language)
         if stopwords:
             tokens = [w for w in tokens  # this last and could be removed
                             if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
@@ -244,11 +259,23 @@ def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs=
             tokens = [stemmer.stem(x) for x in tokens]
             #print("Stemming applied")
         
-        return tokens
-       
+        doc['text'] = " ".join(tokens)
 
+    return context
 
-    vectorizer = vectorizer(tokenizer=tokenize, **vectorizer_kwargs)
+def add_vectorizer(context: dict, vectorizer_class=CountVectorizer, vectorizer_kwargs={}) -> dict:
+    """
+    Adds the given `vectorizer` to the context with a custom tokenizer function
+    """
+    documents = context["documents"]
+
+    vectorizer = get_object([doc['dir'] for doc in documents])
+    context["vectorizer_fitted"] = True
+
+    if vectorizer is None:
+        vectorizer = vectorizer_class(**vectorizer_kwargs)
+        context["vectorizer_fitted"] = False
+
     context["vectorizer"] = vectorizer
     
     return context
@@ -259,14 +286,25 @@ def build_matrix(context:dict, is_query=False) -> dict:
     """
     documents = context["documents"] if not is_query else [context["query"]]
     vectorizer = context["vectorizer"]
+    vectorizer_fitted = context.get("vectorizer_fitted", False)
     
     text_documents = [doc["text"] for doc in documents]
     
     if is_query:
         matrix = vectorizer.transform(text_documents)
-    else:
-        matrix = vectorizer.fit_transform(text_documents)
-    vec_matrix = VecMatrix(vectorizer, matrix)
+    else: 
+        dir_documents = [doc["dir"] for doc in documents]
+        matrix = get_object(dir_documents, suffix="mtx")
+        if matrix is None:
+            if not vectorizer_fitted:
+                matrix = vectorizer.fit_transform(text_documents)
+                save_object(dir_documents, vectorizer)
+                context["vectorizer_fitted"] = True
+            else:
+                matrix = vectorizer.transform(text_documents)
+            save_object(dir_documents, matrix, suffix="mtx")
+
+    vec_matrix = VecMatrix(vectorizer.get_feature_names_out(), matrix)
 
     context["term_matrix" if not is_query else "query_matrix"] = vec_matrix
 
@@ -293,8 +331,8 @@ def add_vector_to_query(context: dict) -> dict:
     return add_vector_to_doc(context, is_query=True)
 
 class VecMatrix:
-    def __init__(self, vectorizer:CountVectorizer, matrix) -> None:
-        self.all_terms = vectorizer.get_feature_names()
+    def __init__(self, all_terms, matrix) -> None:
+        self.all_terms = all_terms
         self.matrix = matrix
         self.__index_map = {x:i for i,x in enumerate(self.all_terms)}
 

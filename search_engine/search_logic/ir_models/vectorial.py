@@ -1,28 +1,10 @@
-from math import log
-from typing import List, Tuple
 import numpy as np
-from ..pipes.pipeline import Pipe, Pipeline
+
+from .feedback import add_feedback_manager, add_feedback_to_query
+from .query_expansion import add_query_expansion_manager
+from ..pipes.pipeline import Pipeline
 from .base import *
 from sklearn.feature_extraction.text import TfidfVectorizer
-
-
-def calculate_idf(context: dict):
-    """
-    Calculate the inverse document frequency in `documents` key storing 
-    the results in `idf` key
-    """
-    idf = {}
-    documents = context["documents"]
-    matrix = context["term_matrix"]
-    
-    N = len(documents)
-    for term in matrix.all_terms:
-        ni = len([i for i in range(len(documents)) if matrix[term, i] > 0])
-        idf[term] = log(N/ni,base=N)
-    
-    context["idf"] = idf
-    
-    return context
 
 def convert_doc_to_vec(context: dict, is_query=False):
     """
@@ -73,36 +55,6 @@ def smooth_query_vec(context: dict):
                               query["vector"][i])*(idf[term] if idf else 1)
 
     return context
-
-def add_feedback_to_query(context: dict):
-    """
-    Applies the Rocchio Algorithm to the given `query` if
-    `feedback_manager` is given
-    """
-    feedback_manager = context.get("feedback_manager")
-    if not feedback_manager:
-        return context
-    query = context["query"]
-    alpha = context.get("alpha_rocchio", 1)
-    beta = context.get("beta_rocchio", 0.75)
-    ro = context.get("ro_rocchio", 0.1)
-
-    relevants = feedback_manager.get_relevants(query)
-    not_relevants = feedback_manager.get_not_relevants(query)
-
-    def vec_mean(vectors, query):
-        if not vectors:
-            return np.zeros_like(query)
-        s = sum(vectors)
-        return s/len(vectors)
-
-    # Apply Rocchio algorithm
-    feedback_vec = alpha * query["vector"] + beta * vec_mean(relevants, query["vector"]) - ro * vec_mean(not_relevants, query["vector"])
-    feedback_vec = np.array([max(0,x) for x in feedback_vec])
-    query["vector"] = feedback_vec
-
-    return context
-
 
 def rank_documents(context: dict):
     """
@@ -157,12 +109,7 @@ class VectorialModel(InformationRetrievalModel):
     
     def __init__(self, corpus_address: str, smooth_query_alpha= 0.0, language="english", rank_threshold=0.0,
                  alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1) -> None:
-        
-        ## MANUAL VECTORIZATION
-        # query_to_vec_pipeline = Pipeline(tokenize_query, remove_stop_words_query, stemming_words_query, convert_query_to_vec)
-        # build_pipeline = Pipeline(read_documents_from_hard_drive, tokenize_documents, remove_stop_words, stemming_words, add_term_matrix, calculate_idf, convert_doc_to_vec)
-        
-        ## SKLEARN VECTORIZATION
+
         query_to_vec_pipeline = Pipeline(
             apply_text_processing_query, 
             build_query_matrix, 
@@ -198,6 +145,5 @@ class VectorialModel(InformationRetrievalModel):
         }
         build_context = {
             "language": language,
-            "feedback_manager": FeedbackManager()
         }
         super().__init__(corpus_address, query_pipeline, query_to_vec_pipeline, build_pipeline, query_context, build_context)

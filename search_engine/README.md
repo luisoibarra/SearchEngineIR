@@ -48,3 +48,11 @@ Expone una API a la cual se le pueden hacer las siguientes conusltas:
 
 - Se puede hacer los modelos Booleano y Probabilístico sobre la misma infraestructura e incluso combinarlos.
 - Aún hace falta trabajar en el corpus
+
+Query expansion
+- Expansion de bigrama? Entrenar cual es la palabra en el texto que mas sale luego de otra, o ordenarla por frecuencia para coger una lista. Enfoque global, enfoque local
+- Clustering? Dada una query, buscar documentos cercanos a esta y extraer de estos palabras. Se podria hacer tambien algo como un algoritmo que busque cual palabra podria acercar mas la query a diferentes docuemntos.
+- Encoder-decoder? Dada la representacion de una query se calcula en el espacio de documentos los K documentos mas cercanos, luego se coge el centroide de esto y se mueve la query con el, una vez se tenga esa nueva representacion de la query se puede hacer un decoder de esta para hacer la expansion
+
+Feedback
+- 

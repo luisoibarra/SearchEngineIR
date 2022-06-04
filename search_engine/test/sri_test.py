@@ -16,7 +16,7 @@ base_corpus_path = (Path(__file__) / ".." / "cranfield_corpus").resolve()
     FeedbackModel(
         query= "air", 
         relevants=[
-            base_corpus_path/"1.txt",
+            str(base_corpus_path/"1.txt"),
         ], 
         not_relevants=[]),
     FeedbackModel(
@@ -24,15 +24,15 @@ base_corpus_path = (Path(__file__) / ".." / "cranfield_corpus").resolve()
         relevants=[
         ], 
         not_relevants=[
-            base_corpus_path/"1.txt",
+            str(base_corpus_path/"1.txt"),
         ]),
     FeedbackModel(
         query= "air", 
         relevants=[
-            base_corpus_path/"2.txt",
-        ], 
+            str(base_corpus_path/"2.txt"),
+        ],
         not_relevants=[
-            base_corpus_path/"1.txt",
+            str(base_corpus_path/"1.txt"),
         ]),
 ])
 def test_apply_feedback_to_model(feedback: FeedbackModel):
@@ -58,9 +58,22 @@ def test_get_documents(query: str, offset:int, batch_size:int):
     if query:
         assert result.documents, "No documents returned"
         assert len(result.documents) <= batch_size, "Batch size is larger than the requested size"
-        assert len(result.documents) - len(result2.documents) == 1, "Offset doesn't work properly"
+        assert len(set(doc.documentDir for doc in result.documents).intersection([doc.documentDir for doc in result2.documents])) == batch_size - 1, "Offset doesn't work properly"
     else:
         assert len(result.documents) == 0, "Returning information with empty query"
 
-def test_get_document_content():
-    pass
+@pt.mark.parametrize("dir",
+[
+    base_corpus_path / "1.txt",
+    base_corpus_path / ".txt",
+])
+def test_get_document_content(dir: Path):
+    if dir.is_file():
+        content = get_document_content(str(dir))
+        assert content == dir.read_text(), "Content returned and true file content aren't equal"
+    else:
+        try:
+            content = get_document_content(str(dir))
+            assert content is None, "Returned content from a non file address"
+        except Exception:
+            pass

@@ -1,5 +1,4 @@
 from cmath import nan
-import pytest
 import ir_datasets as ir
 import sys
 from pathlib import Path
@@ -10,7 +9,6 @@ if __name__ == "__main__":
     sys.path.append(str((Path(__file__) / ".." / "..").resolve()))
 
 from search_logic.ir_models.vectorial import VectorialModel
-from search_logic.ir_models.base import InformationRetrievalModel
 
 def get_qrels_dataframe():
     """
@@ -29,7 +27,7 @@ def get_pickled_stats() -> pd.DataFrame:
     stats = pd.read_pickle(str(stats_path))
     return stats
 
-def test_model(use_pickled_stats=False):
+def eval_model(use_pickled_stats=False):
     """
     Simple test to Cranfield to see basic metrics.
     """
@@ -104,4 +102,4 @@ def print_stats_info(stats: pd.DataFrame):
         print("F1 mean", clean_stats["f1"].mean())
         print()
 
-test_model()
+eval_model()

@@ -44,6 +44,18 @@ Expone una API a la cual se le pueden hacer las siguientes conusltas:
 
 - *query/?query=QUERY*: Devuelve una lista ordenada por similitud con la query. Vea el modelo **QueryResult**
 
+## Visual
+
+Para el visual se creó un proyecto de streamlit. Correr  `streamlit run visual.py`
+
+## Test
+
+Correr `pytest` en la consola
+
+## Evaluación
+
+Para evaluar el modelo se creó el script eval_model.py, con el cual se prueba el F1, Precisión y Recobrado del modelo vectorial, pero es extensible a otros modelos.
+
 ## Consideraciones
 
 - Se puede hacer los modelos Booleano y Probabilístico sobre la misma infraestructura e incluso combinarlos.

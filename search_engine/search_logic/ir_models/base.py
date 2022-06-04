@@ -26,13 +26,14 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     corpus_address = context["corpus_address"]
     # Recursively read all files in the directory
     for root, dirs, files in os.walk(corpus_address):
-        print("Actual dir topics", root.split("/")[-1].split())
-        if root.split("/")[-1] not in [
-             "cars",
-             "sport hockey",
-             "atheism",
-             "computer system ibm pc hardware",
-             "random",
+        print("Actual dir topics", root.split(os.sep)[-1].split())
+        if root.split(os.sep)[-1] not in [
+            "aatest",
+            #  "cars",
+            #  "sport hockey",
+            #  "atheism",
+            #  "computer system ibm pc hardware",
+            #  "random",
         ] or len(documents) > 1:
             continue
         for file in files:
@@ -43,7 +44,7 @@ def read_documents_from_hard_drive(context: dict) -> dict:
                         "text": f.read(),
                         "root": root,
                         "dir": os.path.join(root, file),
-                        "topic": root.split("/")[-1].split()
+                        "topic": root.split(os.sep)[-1].split()
                         })
     # for doc in os.listdir(corpus_address):
     #     doc = os.path.join(corpus_address, doc) 
@@ -237,8 +238,8 @@ def add_vectorizer(context: dict, vectorizer=CountVectorizer, vectorizer_kwargs=
             tokens = [w for w in tokens  # this last and could be removed
                             if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
             #print("Stop words removed")    
-        if lemmatizer:
-            tokens = [lemmatizer.lemmatize(x) for x in tokens]
+        # if lemmatizer:
+        #     tokens = [lemmatizer.lemmatize(x) for x in tokens]
             #print("Lemmatizing applied")
         if stemmer:
             tokens = [stemmer.stem(x) for x in tokens]

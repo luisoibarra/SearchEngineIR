@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:google_clone/models/document_model.dart';
 import 'package:google_clone/models/query_response_model.dart';
 import 'package:google_clone/services/api_configuration_service.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+
+import 'package:dio/dio.dart';
 
 class ApiService {
   bool useDummyData = false;
@@ -21,11 +25,17 @@ class ApiService {
           Provider.of<ApiConfigurationService>(context);
       final uri = await apiConfigurationService.getUrl(_getQueryPath,
           queryParams: {"query": query, "offset": offset.toString()});
-      final response = await http.get(uri);
+      late http.Response response ;
+      try {
+         response = await http.get(uri);
+      } catch (e) {
+        log(e.toString());
+      }
+       
       return QueryResponseModel.fromJson(
           jsonDecode(response.body) as Map<String, dynamic>);
     }
-    return null;
+    return QueryResponseModel(documents:[DocumentModel(documentName: "asd", documentDir: "34567")], responseTime: 1);
   }
 
   Future<String?> fetchDocument(

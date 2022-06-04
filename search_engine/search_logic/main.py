@@ -14,7 +14,21 @@ model.build()
 
 print("Model built successfully")
 
+def getT(query):
+    return QueryResult(
+        # documents = [Document(documentName=doc["dir"].split("/")[-1], documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
+        documents =[Document(documentName="AA", documentDir="C://Users//adria//Repos git//SearchEngineIR//search_engine//search_logic//corpus//aatest//51125", documentTopic=["topic"]) ],
+       
+        responseTime=3,
+        precision=3,
+        recall=3,
+        f1=3,
+        query=query,
+        queryExpansions=[f"{query} Expansion TODO1", f"{query} Expansion TODO2"] # TODO
+    )
+
 def get_documents(query: str,offset:int) -> QueryResult:
+    return getT(query)
     s = t.time()
     values = model.resolve_query(query)[offset:offset+15]
     docs= [doc for _,doc in values]

@@ -1,7 +1,7 @@
 from pathlib import Path
 import streamlit as st
 from models.models import Document, FeedbackModel
-from api_model import model, apply_feedback_to_model, get_document_content, get_documents
+from api_model import get_query_expansions, apply_feedback_to_model, get_document_content, get_documents
 
 # base_path = (Path(__file__) / "..").resolve()
 
@@ -21,12 +21,23 @@ from api_model import model, apply_feedback_to_model, get_document_content, get_
 # Initialization
 if 'document_amount' not in st.session_state:
     st.session_state['document_amount'] = 30
+if 'query' not in st.session_state:
+    st.session_state['query'] = ''
 
 # Body
 
 st.header("Search Engine")
 
-query = st.text_input("Query")
+query = st.text_input("Query", value=st.session_state['query'])
+
+def on_expansion_click(expansion: str):
+    st.session_state['query'] = expansion
+
+with st.expander("Query expansions"):
+    if query:
+        query_expansions = get_query_expansions(query)
+        for expansion in query_expansions:
+            st.button(expansion, key= expansion, on_click=on_expansion_click, args=(expansion,))
 
 with st.expander("Text" if 'text_name' not in st.session_state else st.session_state['text_name']):
     text = st.empty()
@@ -52,6 +63,10 @@ def on_mark_relevant(doc: Document, query: str, relevant: bool):
 
 def on_show_more(more: bool):
     st.session_state["document_amount"] += 30 if more else -30
+
+def on_expand_query(query: str):
+    expansions = get_query_expansions(query)
+    st.session_state["query_expansions"] = expansions
 
 # Show results
 

@@ -4,3 +4,4 @@ launch.json
 *.mtx
 *.vec
 *.df
+*.tok

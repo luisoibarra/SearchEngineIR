@@ -87,8 +87,8 @@ def add_feedback_to_query(context: dict):
     beta = context.get("beta_rocchio", 0.75)
     ro = context.get("ro_rocchio", 0.1)
 
-    relevants = feedback_manager.get_relevants(query["vector"])
-    not_relevants = feedback_manager.get_not_relevants(query["vector"])
+    relevants = feedback_manager.get_relevants(query)
+    not_relevants = feedback_manager.get_not_relevants(query)
 
     def vec_mean(vectors, query):
         if not vectors:
@@ -170,9 +170,12 @@ class VectorialModel(InformationRetrievalModel):
         )
         build_pipeline = Pipeline(
             read_documents_from_hard_drive, 
+            add_tokens,
             add_stopwords,
-            add_lemmatizer, 
-            add_stemmer, 
+            add_lemmatizer, # Stemmer XOR Lemmatizer 
+            # add_stemmer, # Stemmer XOR Lemmatizer
+            add_feedback_manager,
+            add_query_expansion_manager,
             add_vectorizer_vectorial, 
             apply_text_processing, 
             build_matrix, 

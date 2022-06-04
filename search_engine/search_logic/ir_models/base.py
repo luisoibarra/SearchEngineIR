@@ -14,6 +14,8 @@ import string
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
 
+from concurrent.futures import ThreadPoolExecutor, wait
+
 from nltk import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
@@ -27,43 +29,48 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     documents = []
     corpus_address = context["corpus_address"]
     # Recursively read all files in the directory
-    for root, dirs, files in os.walk(corpus_address):
-        # print("Actual dir topics", root.split("/")[-1].split())
-        # if root.split("/")[-1] not in [
-        #      "cars",
-        #      "sport hockey",
-        #      "atheism",
-        #      "computer system ibm pc hardware",
-        #      "random",
-        # ]:
-        #     continue
-        for file in files:
-            # if len(documents) > 5:
-            #     break
-            # print("File processed",file)
-            with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
-                try:
-                    documents.append({
-                        "text": f.read(),
-                        "root": root,
-                        "dir": os.path.join(root, file),
-                        "topic": root.split("/")[-1].split()
-                        })
-    # for doc in os.listdir(corpus_address):
-    #     doc = os.path.join(corpus_address, doc) 
-        
-    #     if os.path.isfile(doc):
-    #         with open(doc) as file:
-    #             try:
-    #                 documents.append({
-    #                     "text":file.read(),
-    #                     "dir": doc,
-    #                 })
-                except Exception as e:
-                    print("Error reading file", file, e)
+    addresses = [dir for dir in os.walk(corpus_address)]
+    max_workers = 20
+    futures = []
+    with ThreadPoolExecutor(max_workers=max_workers) as exe:
+
+        def read_files(section:int):
+            for root, dirs, files in addresses[max_workers*section:max_workers*(section+1)]:
+                for file in files:
+                    with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
+                        try:
+                            documents.append({
+                                "text": f.read(),
+                                "root": root,
+                                "dir": os.path.join(root, file),
+                                "topic": root.split("/")[-1].split()
+                                })
+                        except Exception as e:
+                            print("Error reading file", file, e)
+
+        for i in range(max_workers):
+            futures.append(exe.submit(read_files, section=i))
+
+    wait(futures)
+    documents.sort(key=lambda x: x['dir'])
     context["documents"] = documents
     print("Documents read", len(documents))
     print("End document collecting")
+    return context
+
+def add_tokens(context: dict) -> dict:
+    """
+    Adds the saved tokens if any to the docs representation in `tokens` key
+    """
+    documents = context["documents"]
+    
+    tok_dict = get_object([doc['dir'] for doc in documents], suffix="tok")
+    if tok_dict:
+        for doc in documents:
+            tokens = tok_dict.get(doc['dir'])
+            if tokens:
+                doc['tokens'] = tokens
+
     return context
 
 ## MANUAL TEXT PROCESSING
@@ -177,13 +184,13 @@ def add_feedback_vectors(context: dict):
     """
     feedback_manager = context.get("feedback_manager")
     if feedback_manager:
-        query = context["query"]["vector"]
+        query = context["query"]
         new_relevant_documents = context.get("new_relevant_documents", [])
         new_not_relevant_documents = context.get("new_not_relevant_documents", [])
         for rel in new_relevant_documents:
-            feedback_manager.mark_relevant(query, rel["vector"])
+            feedback_manager.mark_relevant(query, rel)
         for not_rel in new_not_relevant_documents:
-            feedback_manager.mark_not_relevant(query, not_rel["vector"])
+            feedback_manager.mark_not_relevant(query, not_rel)
         print("Feedback vectors added")
     return context
 
@@ -235,9 +242,6 @@ def apply_text_processing(context: dict, tokenizer=word_tokenize, is_query=False
     """
     Apply all preprocessing to text before creating the vector matrix
     """
-    if not is_query and context.get("vectorizer_fitted"):
-        # Processing not needed
-        return context
 
     language = context.get("language", "english")
     documents = context["documents"] if not is_query else [context["query"]]
@@ -246,20 +250,26 @@ def apply_text_processing(context: dict, tokenizer=word_tokenize, is_query=False
     lemmatizer = context.get("lemmatizer")
     englishwords = set(words.words())
 
+    all_tokens = True
+
     for doc in documents:
-        tokens = tokenizer(doc['text'], language=language)
-        if stopwords:
-            tokens = [w for w in tokens  # this last and could be removed
-                            if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
-            #print("Stop words removed")    
-        if lemmatizer:
-            tokens = [lemmatizer.lemmatize(x) for x in tokens]
-            #print("Lemmatizing applied")
-        if stemmer:
-            tokens = [stemmer.stem(x) for x in tokens]
-            #print("Stemming applied")
-        
-        doc['text'] = " ".join(tokens)
+        if 'tokens' not in doc: # Tokens aren't saved
+            tokens = tokenizer(doc['text'], language=language)
+            if stopwords:
+                tokens = [w for w in tokens  # this last and could be removed
+                                if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
+                #print("Stop words removed")    
+            if lemmatizer:
+                tokens = [lemmatizer.lemmatize(x) for x in tokens]
+                #print("Lemmatizing applied")
+            if stemmer:
+                tokens = [stemmer.stem(x) for x in tokens]
+                #print("Stemming applied")
+            doc['tokens'] = tokens
+            all_tokens = False
+
+    if not is_query and not all_tokens:
+        save_object([doc['dir'] for doc in documents], { doc['dir']:doc['tokens'] for doc in documents }, suffix="tok")
 
     return context
 
@@ -288,8 +298,9 @@ def build_matrix(context:dict, is_query=False) -> dict:
     vectorizer = context["vectorizer"]
     vectorizer_fitted = context.get("vectorizer_fitted", False)
     
-    text_documents = [doc["text"] for doc in documents]
-    
+    text_documents = [doc["tokens"] for doc in documents]
+    text_documents = [" ".join(toks) for toks in text_documents]
+
     if is_query:
         matrix = vectorizer.transform(text_documents)
     else: 
@@ -330,6 +341,45 @@ def add_vector_to_doc(context: dict, is_query=False) -> dict:
 def add_vector_to_query(context: dict) -> dict:
     return add_vector_to_doc(context, is_query=True)
 
+def add_feedback_manager(context: dict) -> dict:
+    """
+    Add the feedback maanger used by the IR model
+    """
+    manager = FeedbackManager()
+    context["feedback_manager"] = manager
+    manager.build(context)
+
+    return context
+
+def add_query_expansion_manager(context: dict) -> dict:
+    """
+    Add the feedback maanger used by the IR model
+    """
+    manager = QueryExpansionManager()
+    context["query_expansion_manager"] = manager
+    manager.build(context)
+
+    return context
+
+def add_query_expansions(context: dict) -> dict:
+    """
+    Adds the `query_expantions` of `query` to the context
+    """
+
+    query_expansion_manager: QueryExpansionManager = context.get('query_expansion_manager')
+    query = context["query"]
+    
+    if query_expansion_manager is None:
+        context["query_expansions"] = []
+        return context
+    
+    expansions = query_expansion_manager.expand_query(query)
+
+    context["query_expansions"] = expansions
+
+    return context
+
+
 class VecMatrix:
     def __init__(self, all_terms, matrix) -> None:
         self.all_terms = all_terms
@@ -342,7 +392,7 @@ class VecMatrix:
 class InformationRetrievalModel:
     
     def __init__(self, corpus_address:str, query_pipeline: Pipeline, query_to_vec_pipeline: Pipeline, build_pipeline: Pipeline, query_context: dict, build_context: dict,
-                 feedback_pipeline: Pipeline=None) -> None:
+                 feedback_pipeline: Pipeline=None, expansion_query_pipeline: Pipeline=None) -> None:
         """
         Returns the 'ranked_documents' key from the last result of `query_pipeline`.
         
@@ -362,7 +412,8 @@ class InformationRetrievalModel:
         self.query_to_vec_pipeline = query_to_vec_pipeline
         self.build_pipeline = build_pipeline
         self.feedback_pipeline = feedback_pipeline if feedback_pipeline else Pipeline(add_feedback_vectors)
-    
+        self.query_expansion_pipeline = expansion_query_pipeline if expansion_query_pipeline else Pipeline(add_query_expansions)
+
     def resolve_query(self, query:str) -> List[dict]:
         """
         Returns an ordered list of the ranked relevant documents.
@@ -406,6 +457,12 @@ class InformationRetrievalModel:
         feedback_vector["new_not_relevant_documents"] = new_not_relevant_documents
         self.feedback_pipeline(feedback_vector)
 
+    def get_expansion_query(self, query: str) -> List[str]:
+        query_expansion_context = self.query_to_vec_pipeline({"query": {"text":query}, **self.query_context, **self.build_result})
+        query_expansion_context = self.query_expansion_pipeline(query_expansion_context)
+        return query_expansion_context["query_expansions"]
+
+
 class FeedbackManager:
     """
     Base class to manage the relevant and not relevant documents for a given query 
@@ -415,43 +472,69 @@ class FeedbackManager:
         self.relevant_dict = {}
         self.not_relevant_dict = {}
 
-    def _mark_document(self, query, document, relevant_dict):
+    def build(self, context: dict):
+        """
+        Initialize the manager
+        """
+        return
+
+    def _mark_document(self, query: dict, document: dict, relevant_dict: dict):
 
         # Adds the document in a set with all relevant or not relevant documents of the query
-        query = tuple(query)
-        document = tuple(document)
+        query = tuple(query['vector'])
+        document = tuple(document['vector'])
         if query in relevant_dict:
             relevant_dict[query].update([document])
         else:
             relevant_dict[query] = set([document])
 
-    def mark_relevant(self, query, document):
+    def mark_relevant(self, query: dict, document: dict):
         """
         Mark the document as relevant to the query
         """
         self._mark_document(query, document, self.relevant_dict)
     
-    def mark_not_relevant(self, query, document):
+    def mark_not_relevant(self, query: dict, document: dict):
         """
         Mark the document as not relevant to the query
         """
         self._mark_document(query, document, self.not_relevant_dict)
 
-    def get_relevants(self, query):
-        """
-        Return the list of relevant documents given the query
-        """
+    def _get_relevants(self, query: dict, relevant_dict: dict):
         try:
-            return [np.array(x) for x in self.relevant_dict[tuple(query)]]
+            return [np.array(x) for x in relevant_dict[tuple(query['vector'])]]
         except KeyError:
             return []
 
-    def get_not_relevants(self, query):
+    def get_relevants(self, query: dict):
+        """
+        Return the list of relevant documents given the query
+        """
+        return self._get_relevants(query, self.relevant_dict)
+
+    def get_not_relevants(self, query: dict):
         """
         Return the list of non relevant documents given the query
         """
-        try:
-            return [np.array(x) for x in self.not_relevant_dict[tuple(query)]]
-        except KeyError:
-            return []
-    
+        return self._get_relevants(query, self.not_relevant_dict)
+
+
+class QueryExpansionManager:
+    """
+    Base class that manages the query expansion
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    def build(self, context: dict):
+        """
+        Initialize the manager
+        """
+        return
+
+    def expand_query(self, query: dict) -> List[str]:
+        """
+        Returns a rank for the query expansion for the given query
+        """
+        return [query['text'] + "1", query['text'] + "2", query['text'] + "3"] # TODO

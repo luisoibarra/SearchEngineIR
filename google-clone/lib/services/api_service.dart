@@ -12,6 +12,7 @@ class ApiService {
   static const _getDocumentPath = "document";
   static const _applyFeedbackPath = "feedback";
 
+  
   Future<QueryResponseModel?> fetchData(
       {required BuildContext context,
       required String query,
@@ -21,12 +22,30 @@ class ApiService {
           Provider.of<ApiConfigurationService>(context);
       final uri = await apiConfigurationService.getUrl(_getQueryPath,
           queryParams: {"query": query, "offset": offset.toString()});
-      final response = await http.get(uri);
-      return QueryResponseModel.fromJson(
-          jsonDecode(response.body) as Map<String, dynamic>);
+
+      try
+      {
+         final response = await http.get(uri, headers: {
+           'Content-type': 'application/json',
+           "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+           "Access-Control-Allow-Credentials":
+           'true', // Required for cookies, authorization headers with HTTPS
+           "Access-Control-Allow-Headers":
+           "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+           "Access-Control-Allow-Methods": "POST, GET,OPTIONS"
+        });
+        Map<String, dynamic> res= jsonDecode(response.body);
+        var result = QueryResponseModel.fromJson(res);
+        return result;
+      }
+     catch (e) {
+       print(e.toString());
+      }
     }
     return null;
   }
+
+
 
   Future<String?> fetchDocument(
       {required BuildContext context,

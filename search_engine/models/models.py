@@ -19,6 +19,15 @@ class QueryResult(BaseModel):
     query:str
     queryExpansions: List[str]
 
+class ResponseModel(BaseModel):
+    documents: List[Document]
+    """
+    Query response in milliseconds
+    """
+    responseTime: int = 0
+
+
+
 class FeedbackModel(BaseModel):
     query:str
     relevants: List[str]

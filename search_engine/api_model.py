@@ -1,5 +1,5 @@
 from typing import List
-from models.models import Document, FeedbackModel, QueryResult
+from models.models import Document, FeedbackModel, QueryResult, ResponseModel
 from search_logic.ir_models.vectorial import VectorialModel
 # from nltk.corpus import wordnet
 from pathlib import Path
@@ -21,12 +21,17 @@ def get_documents(query: str, offset:int, batch_size: int=15) -> QueryResult:
     values = model.resolve_query(query)[offset:offset+batch_size]
     e = t.time()
 
-    return QueryResult(
-        documents = [Document(documentName=Path(doc["dir"]).name, documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
-        responseTime=int((e - s) * 1000),
-        query=query,
-        queryExpansions=[f"{query} Expansion TODO1", f"{query} Expansion TODO2"] # TODO
+    return ResponseModel(
+         documents = [Document(documentName=Path(doc["dir"]).name, documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
+        responseTime=int((e - s) * 1000)
     )
+    
+    # return QueryResult(
+    #     documents = [Document(documentName=Path(doc["dir"]).name, documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
+    #     responseTime=int((e - s) * 1000),
+    #     query=query,
+    #     queryExpansions=[f"{query} Expansion TODO1", f"{query} Expansion TODO2"] # TODO
+    # )
 
 def get_document_content(document_dir: str) -> str:
     doc = [doc["text"] for doc in model.build_result["documents"] if doc["dir"] == document_dir]

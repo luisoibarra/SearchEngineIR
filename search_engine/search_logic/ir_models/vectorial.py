@@ -18,8 +18,8 @@ def smooth_query_vec(context: dict):
     idf = context.get("idf")
     matrix = context["term_matrix"]
     for i,term in enumerate(matrix.all_terms):
-        query["vector"][i] = (alpha + (1 - alpha) *
-                              query["vector"][i])*(idf[term] if idf else 1)
+        query["vector"][i] = (alpha*(idf[term] if idf else 1) + (1 - alpha) *
+                              query["vector"][i])### query["vector"] is already a TFIDF Vector result of TfidfVectorizer
 
     return context
 
@@ -38,7 +38,7 @@ def rank_documents(context: dict):
         norm_y = np.linalg.norm(y)
         if 0 in [norm_y, norm_x]:
             return 0
-        return np.dot(x,y)/norm_x/norm_y
+        return np.dot(x,y)/(norm_x*norm_y)
 
     rank_threshold = context.get("rank_threshold", 0)
     
@@ -59,7 +59,7 @@ def add_vectorizer_vectorial(context: dict) -> dict:
     """
     Build and add a TF-IDF vectorizer to the context
     """
-    return add_vectorizer(context, vectorizer_class=TfidfVectorizer, vectorizer_kwargs={"use_idf":False})
+    return add_vectorizer(context, vectorizer_class=TfidfVectorizer, vectorizer_kwargs={"use_idf":True})
 
 def add_idf(context: dict):
     """
@@ -74,7 +74,7 @@ def add_idf(context: dict):
 
 class VectorialModel(InformationRetrievalModel):
     
-    def __init__(self, corpus_address: str, smooth_query_alpha= 0.0, language="english", rank_threshold=0.0,
+    def __init__(self, corpus_address: str, smooth_query_alpha= 0.2, language="english", rank_threshold=0.0,
                  alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1) -> None:
 
         query_to_vec_pipeline = Pipeline(
@@ -94,7 +94,7 @@ class VectorialModel(InformationRetrievalModel):
             add_vectorizer_vectorial, 
             apply_text_processing, 
             build_matrix, 
-            # add_idf,
+            add_idf,
             add_vector_to_doc,
         )
         

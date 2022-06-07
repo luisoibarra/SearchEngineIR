@@ -134,8 +134,8 @@ framework nltk. Esta es dividida principalmente en varias etapas:
     \item Convertir el texto en tokens
     \item Limpiar los tokens
     \item Remover las stopwords
-    \item Aplicar stemming a los tokens
-    \item Aplicar lemmatizing a los tokens
+    \item Aplicar stemming o lemmatizing a los tokens o
+    \item Aplicar similitud semántica a los tokens(wordnet,synsets,lemmas)
     %TODO Mantener actualizado con el desarrollo del proyecto
 \end{enumerate}
 
@@ -239,6 +239,15 @@ motor de búsqueda.
 
 %TODO
 Hacer conclusiones
+El modelo Vectorial pese a ser sencillo y obtener buenos resultados de manera sintactica, al probarse con el dataset de cranfield
+presento problemas para la recuperación de informacion meramente semantica con respecto a una consulta. Consultas del tipo: "qué","como" 
+y de ese estilo que requieren de una respuesta al significado semantico de la misma consulta.
+La biblioteca de python cuenta con un TfidfVectorizer el cual nos da como resultado una matriz de TF*IDF del corpus de documentos
+entregados como argumento a su metodo fit_transform.
+La consulta es pasada como argumento al metodo transform del mismo vectorizer ya ajustado al corpus de documentos, lo cual devuelve un
+ vector normalizado de tf*idf de dicha consulta. Por tanto en el metodo smooth_query donde deberia haber una multiplicacion de tf*idf 
+ solo se encuentra query["vector"]. 
+
 
 % \section{First Section}
 % \subsection{A Subsection Sample}

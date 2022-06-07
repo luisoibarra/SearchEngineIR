@@ -97,6 +97,7 @@ def print_stats_info(stats: pd.DataFrame):
 
     for rank_threshold, clean_stats in clean_nan_stats.groupby("rank_threshold"):
         print("Rank Threshold", rank_threshold)
+        print(clean_stats.describe())
         print("Recall mean", clean_stats["recall"].mean())
         print("Precision mean", clean_stats["precision"].mean())
         print("F1 mean", clean_stats["f1"].mean())

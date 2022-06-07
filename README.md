@@ -51,6 +51,7 @@ El objetivo principal es mostrar los documentos relevantes de un corpus dado una
 - Añadir expansión de query
 - Añadir retroalimentación
 - Agregar spelling correction
+- Procesar la query del cranfield en el corpus
 
 HACER AHORA
 - Visual Streamlit

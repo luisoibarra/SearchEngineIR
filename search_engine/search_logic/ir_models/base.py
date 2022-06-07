@@ -12,7 +12,7 @@ from ..pipes.pipeline import Pipe, Pipeline
 import os
 from typing import List, Tuple
 from nltk.corpus import stopwords
-from nltk.corpus import words
+from nltk.corpus import words, wordnet
 import string
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 
 from nltk import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+
 
 # READ PIPES
 def read_documents_from_hard_drive(context: dict) -> dict:
@@ -32,27 +33,28 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     documents = []
     corpus_address = context["corpus_address"]
     # Recursively read all files in the directory
-    addresses = [dir for dir in os.walk(corpus_address)]
+    addresses = [(root,file) for root, _, files in os.walk(corpus_address) for file in files]
     max_workers = 20
     futures = []
     with ThreadPoolExecutor(max_workers=max_workers) as exe:
 
         def read_files(section:int):
-            for root, dirs, files in addresses[max_workers*section:max_workers*(section+1)]:
-                for file in files:
-                    with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
-                        try:
-                            documents.append({
-                                "text": f.read(),
-                                "root": root,
-                                "dir": os.path.join(root, file),
-                                "topic": root.split("/")[-1].split()
-                                })
-                        except Exception as e:
-                            print("Error reading file", file, e)
+            batch = len(addresses)//max_workers
+            for root, file in addresses[batch*section:batch*(section+1)]:
+                with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
+                    try:
+                        documents.append({
+                            "text": f.read(),
+                            "root": root,
+                            "dir": os.path.join(root, file),
+                            "topic": root.split("/")[-1].split()
+                            })
+                    except Exception as e:
+                        print("Error reading file", file, e)
 
         for i in range(max_workers):
             futures.append(exe.submit(read_files, section=i))
+            # read_files(i)
 
     wait(futures)
     documents.sort(key=lambda x: x['dir'])
@@ -103,6 +105,16 @@ def add_lemmatizer(context: dict) -> dict:
     context["lemmatizer"]= WordNetLemmatizer()
     return context
 
+
+def add_wordnet(context: dict) -> dict:
+    """
+    Adds the `wordnet` used to the context
+    """
+    context["wordnet"] = wordnet
+    return context
+
+
+
 def apply_text_processing_query(context: dict, tokenizer=word_tokenize) -> dict:
     """
     Apply all preprocessing to query before creating the vector matrix
@@ -119,7 +131,8 @@ def apply_text_processing(context: dict, tokenizer=word_tokenize, is_query=False
     stopwords = context.get("stop_words")
     stemmer = context.get("stemmer")
     lemmatizer = context.get("lemmatizer")
-    englishwords = set(words.words())
+    wordnet = context.get("wordnet")
+    #englishwords = set(words.words())
 
     all_tokens = True
 
@@ -128,14 +141,19 @@ def apply_text_processing(context: dict, tokenizer=word_tokenize, is_query=False
             tokens = tokenizer(doc['text'], language=language)
             if stopwords:
                 tokens = [w for w in tokens  # this last and could be removed
-                                if not w.lower() in stopwords and w.isalpha() and w.lower() in englishwords]
-                #print("Stop words removed")    
+                                if not w.lower() in stopwords and w.isalpha()]
+                #print("Stop words removed")
             if lemmatizer:
                 tokens = [lemmatizer.lemmatize(x) for x in tokens]
                 #print("Lemmatizing applied")
+            if wordnet:
+                tokens = [wordnet.synsets(x)[0].lemmas()[0].name().lower() if len(
+                    wordnet.synsets(x)) > 0 else x for x in tokens]
+
             if stemmer:
                 tokens = [stemmer.stem(x) for x in tokens]
                 #print("Stemming applied")
+            
             doc['tokens'] = tokens
             all_tokens = False
 

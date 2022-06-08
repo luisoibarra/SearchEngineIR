@@ -44,7 +44,27 @@ Expone una API a la cual se le pueden hacer las siguientes conusltas:
 
 - *query/?query=QUERY*: Devuelve una lista ordenada por similitud con la query. Vea el modelo **QueryResult**
 
+## Visual
+
+Para el visual se creó un proyecto de streamlit. Correr  `streamlit run visual.py`
+
+## Test
+
+Correr `pytest` en la consola
+
+## Evaluación
+
+Para evaluar el modelo se creó el script eval_model.py, con el cual se prueba el F1, Precisión y Recobrado del modelo vectorial, pero es extensible a otros modelos.
+
 ## Consideraciones
 
 - Se puede hacer los modelos Booleano y Probabilístico sobre la misma infraestructura e incluso combinarlos.
 - Aún hace falta trabajar en el corpus
+
+Query expansion
+- Expansion de bigrama? Entrenar cual es la palabra en el texto que mas sale luego de otra, o ordenarla por frecuencia para coger una lista. Enfoque global, enfoque local
+- Clustering? Dada una query, buscar documentos cercanos a esta y extraer de estos palabras. Se podria hacer tambien algo como un algoritmo que busque cual palabra podria acercar mas la query a diferentes docuemntos.
+- Encoder-decoder? Dada la representacion de una query se calcula en el espacio de documentos los K documentos mas cercanos, luego se coge el centroide de esto y se mueve la query con el, una vez se tenga esa nueva representacion de la query se puede hacer un decoder de esta para hacer la expansion
+
+Feedback
+- 

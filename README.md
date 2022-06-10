@@ -7,13 +7,13 @@ Implementación de un motor de búsqueda para la recuperación de información. 
 Mínimos:
 
 - Python3
-  - FastAPI
+  - FastAPI o streamlit
   - nltk
   - sklearn
 
 Recomendables:
 
-- Flutter
+- Flutter (se dará un compilado de la versión web)
 
 ## Uso
 
@@ -51,6 +51,7 @@ El objetivo principal es mostrar los documentos relevantes de un corpus dado una
 - Añadir expansión de query
 - Añadir retroalimentación
 - Agregar spelling correction
+- *********************** En el Cranfield y en los datasets en general no siempre se tienen por ejemplo 10 elementos relevantes por query, esto a la hora de evaluar el modelo hace que se deteriore considerablemente si se hace ingenuamente. Hacer un algoritmo que pueda obtener resutlados mejores basados en esta informacion, algo como una R precision/recobrado donde R es la cantidad de documentos relevantes a la query 
 - Procesar la query del cranfield en el corpus
 
 HACER AHORA

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_clone/models/query_response_model.dart';
@@ -427,13 +428,13 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                                 text: "< Prev",
                                 textStyle: TextStyle(
                                     fontSize: 15,
-                                    color: widget.startIndex != "1"
+                                    color: widget.startIndex != "0"
                                         ? Color(0xFF1a0dab)
                                         : null),
-                                onTap: widget.startIndex != "1"
+                                onTap: widget.startIndex != "0"
                                     ? () {
                                         Navigator.pushNamed(context,
-                                            '/search?q=${widget.q}&start=${int.parse(widget.startIndex) - 10}');
+                                            '/search?q=${widget.q}&start=${max(int.parse(widget.startIndex) - (snapshot.data?.documents.length ?? 0),0)}');
                                       }
                                     : null,
                               ),
@@ -444,7 +445,7 @@ class _GoogleSearchResultPageState extends State<GoogleSearchResultPage> {
                                     fontSize: 15, color: Color(0xFF1a0dab)),
                                 onTap: () {
                                   Navigator.pushNamed(context,
-                                      '/search?q=${widget.q}&start=${int.parse(widget.startIndex) + 10}');
+                                      '/search?q=${widget.q}&start=${int.parse(widget.startIndex) + (snapshot.data?.documents.length ?? 0)}');
                                 },
                               ),
                             ],

@@ -71,7 +71,7 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                                 onSubmitted: (text) {
                                   if (text.trim() != "")
                                     Navigator.pushNamed(context,
-                                        '/search?q=${text.trim()}&start=1');
+                                        '/search?q=${text.trim()}&start=0');
                                 },
                                 controller: provider.searchFieldController,
                                 onTap: () {
@@ -99,7 +99,7 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                                                 .trim() !=
                                             "")
                                           Navigator.pushNamed(context,
-                                              '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=1');
+                                              '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=0');
                                       },
                                       child: Icon(
                                         Icons.search,
@@ -216,7 +216,7 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                                           .trim() !=
                                       "")
                                     Navigator.pushNamed(context,
-                                        '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=1');
+                                        '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=0');
                                 },
                               ),
                             ),

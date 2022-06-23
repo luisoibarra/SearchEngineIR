@@ -75,7 +75,7 @@ def add_idf(context: dict):
 class VectorialModel(InformationRetrievalModel):
     
     def __init__(self, corpus_address: str, smooth_query_alpha= 0.2, language="english", rank_threshold=0.0,
-                 alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1) -> None:
+                 alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1, add_document_pipe=None, **kwargs) -> None:
 
         query_to_vec_pipeline = Pipeline(
             apply_text_processing_query, 
@@ -83,7 +83,7 @@ class VectorialModel(InformationRetrievalModel):
             add_vector_to_query,
         )
         build_pipeline = Pipeline(
-            read_documents_from_hard_drive, 
+            read_documents_from_hard_drive if not add_document_pipe else add_document_pipe, 
             add_tokens,
             add_stopwords,
             add_lemmatizer, # Stemmer XOR Lemmatizer 

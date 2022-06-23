@@ -43,12 +43,14 @@ def read_documents_from_hard_drive(context: dict) -> dict:
             for root, file in addresses[batch*section:batch*(section+1)]:
                 with open(os.path.join(root, file), "r", encoding="utf8", errors='ignore') as f:
                     try:
-                        documents.append({
-                            "text": f.read(),
-                            "root": root,
-                            "dir": os.path.join(root, file),
-                            "topic": root.split("/")[-1].split()
-                            })
+                        text = f.read()
+                        if text:
+                            documents.append({
+                                "text": text,
+                                "root": root,
+                                "dir": os.path.join(root, file),
+                                "topic": root.split("/")[-1].split()
+                                })
                     except Exception as e:
                         print("Error reading file", file, e)
 
@@ -263,6 +265,7 @@ class InformationRetrievalModel:
         self.build_pipeline = build_pipeline
         self.feedback_pipeline = feedback_pipeline if feedback_pipeline else Pipeline(add_feedback_vectors)
         self.query_expansion_pipeline = expansion_query_pipeline if expansion_query_pipeline else Pipeline(add_query_expansions)
+        self.last_resolved_query_context = None
 
     def resolve_query(self, query:str) -> List[dict]:
         """
@@ -279,6 +282,7 @@ class InformationRetrievalModel:
             self.query_pipeline,
         )
         result = pipeline(query)
+        self.last_resolved_query_context = result
         return result["ranked_documents"]
     
     def build(self) -> dict:

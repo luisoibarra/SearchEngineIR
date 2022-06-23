@@ -8,7 +8,11 @@ import pandas as pd
 if __name__ == "__main__":
     sys.path.append(str((Path(__file__) / ".." / "..").resolve()))
 
+from search_logic.ir_models.base import InformationRetrievalModel
+from search_logic.ir_models.classification import ClassificationSVMModel
 from search_logic.ir_models.vectorial import VectorialModel
+
+BASE_PATH = (Path(__file__) / "..").resolve()
 
 def get_qrels_dataframe():
     """
@@ -22,16 +26,15 @@ def get_pickled_stats() -> pd.DataFrame:
     """
     Read pickled stats.df 
     """
-    base_path = (Path(__file__) / "..").resolve()
-    stats_path = (base_path / "stats.df").resolve()
+    stats_path = (BASE_PATH / "stats.df").resolve()
     stats = pd.read_pickle(str(stats_path))
     return stats
 
-def eval_model(use_pickled_stats=False):
+def eval_model(model: InformationRetrievalModel, use_pickled_stats=False):
     """
     Simple test to Cranfield to see basic metrics.
     """
-    base_path = (Path(__file__) / "..").resolve() / "cranfield_corpus"
+    base_path = BASE_PATH / "cranfield_corpus"
     relevance_threshold = 0
     stats_path = (base_path / ".." / "stats.df").resolve()
     
@@ -41,7 +44,6 @@ def eval_model(use_pickled_stats=False):
         return
 
     start = time.time()
-    model = VectorialModel(base_path)
     model.build()
     print("Build Time:", time.time() - start, "seconds")
 
@@ -66,7 +68,7 @@ def eval_model(use_pickled_stats=False):
         # non_relevant_docs = qrel[qrel["relevance"] < relevance_threshold]
 
         query_rank = model.resolve_query(queries[query_id])
-        query_rec_docs = [Path(doc['dir']).name[:-4] for _, doc in query_rank]
+        query_rec_docs = [Path(doc['dir']).stem for _, doc in query_rank]
         for total_rank_to_check in [30, 50, 100]:
             rec_docs = query_rec_docs[:total_rank_to_check]
 
@@ -103,4 +105,12 @@ def print_stats_info(stats: pd.DataFrame):
         print("F1 mean", clean_stats["f1"].mean())
         print()
 
-eval_model()
+print("VECTORIAL")
+model = VectorialModel(BASE_PATH / "cranfield_corpus") 
+eval_model(model)
+print()
+
+print("SVM")
+model = ClassificationSVMModel(BASE_PATH / "cranfield_corpus")
+eval_model(model)
+print()

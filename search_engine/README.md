@@ -38,6 +38,13 @@ Fase de procesamiento de los documentos para su funcionamiento en el modelo vect
 - Convertir query a vector con factor de suavizado.
 - Calcular la similitud entre los documentos y a query y devolver los resultados rankeados fitrados por un umbral para la similitud.
 
+### Rank SVM
+
+Fase de procesamiento que en la cual se hace el entrenamiento del clasificador SVM. Su procesamiento depende en parte del modelo vectorial.
+
+- Entrenamiento del clasificador SVM
+- Cálculo de ranking de documentos dado una query
+
 ## API
 
 Expone una API a la cual se le pueden hacer las siguientes conusltas:
@@ -54,7 +61,7 @@ Correr `pytest` en la consola
 
 ## Evaluación
 
-Para evaluar el modelo se creó el script eval_model.py, con el cual se prueba el F1, Precisión y Recobrado del modelo vectorial, pero es extensible a otros modelos.
+Para evaluar el modelo se creó el script eval_model.py, con el cual se prueba el F1, Precisión y Recobrado de los modelos creados.
 
 ## Consideraciones
 

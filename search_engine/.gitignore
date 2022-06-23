@@ -5,3 +5,4 @@ launch.json
 *.vec
 *.df
 *.tok
+search_logic/ir_models/pickles

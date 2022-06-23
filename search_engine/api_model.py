@@ -1,5 +1,6 @@
 from typing import List
 from models.models import Document, FeedbackModel, QueryResult, ResponseModel
+from search_logic.ir_models.classification import ClassificationSVMModel
 from search_logic.ir_models.vectorial import VectorialModel
 # from nltk.corpus import wordnet
 from pathlib import Path
@@ -10,7 +11,8 @@ import time as t
 path = Path(__file__) / ".." / "test" / "cranfield_corpus"
 CORPUS = path.resolve()
 
-model = VectorialModel(CORPUS)
+# model = VectorialModel(CORPUS)
+model = ClassificationSVMModel(CORPUS)
 
 model.build()
 
@@ -25,13 +27,6 @@ def get_documents(query: str, offset:int, batch_size: int=15) -> QueryResult:
          documents = [Document(documentName=Path(doc["dir"]).name, documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
         responseTime=int((e - s) * 1000)
     )
-    
-    # return QueryResult(
-    #     documents = [Document(documentName=Path(doc["dir"]).name, documentDir=doc["dir"], documentTopic=doc["topic"]) for _,doc in values],
-    #     responseTime=int((e - s) * 1000),
-    #     query=query,
-    #     queryExpansions=[f"{query} Expansion TODO1", f"{query} Expansion TODO2"] # TODO
-    # )
 
 def get_document_content(document_dir: str) -> str:
     doc = [doc["text"] for doc in model.build_result["documents"] if doc["dir"] == document_dir]

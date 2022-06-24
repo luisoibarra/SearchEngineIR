@@ -3,8 +3,9 @@ from sklearn.svm import LinearSVC
 import ir_datasets as ir
 import numpy as np
 from pathlib import Path
+
 from .base import InformationRetrievalModel
-from .utils import get_object, save_object
+from .utils import get_object, save_object, read_document, read_relevance
 
 from .vectorial import VectorialModel
 from ..pipes.pipeline import Pipeline
@@ -75,27 +76,57 @@ def __get_feature(doc_i_repr: dict, query_repr: dict):
     axis=0)
     return feature
 
-def add_crainfield_training_documents(context: dict):
+def add_training_documents(context: dict):
     """
-    Adds the Cranfield corpus documents and training information.
+    Adds the training corpus documents and training information.
     """
 
+    dataset_name = context.get("dataset_name", "cranfield")
+
     documents = []
-    dataset = ir.load("cranfield")
-    for doc in dataset.docs_iter():
-        doc_id, title, text, author, bib = doc
-        if text:
+    relevance = set()
+    queries_dict = {}
+    
+    if dataset_name in ["cranfield"]:
+        dataset = ir.load(dataset_name)
+        # Documents
+        for doc in dataset.docs_iter():
+            doc_id, title, text = doc.doc_id, doc.title, doc.text
+            if text:
+                documents.append({
+                    "text": text,
+                    "dir": doc_id,
+                    "topic": title
+                })
+
+        # Queries
+        queries_dict = { q.query_id: q.text for q in dataset.queries_iter() }
+
+        # Relevance
+        for qrel in dataset.qrels_iter():
+            q_id, d_id, rel = qrel.query_id, qrel.doc_id, qrel.relevance
+            relevance.add((q_id, d_id, rel))
+    elif dataset_name in ["med"]:
+
+        # Documents
+        document_path = Path(__file__, "..", "..", "..", "test", f"{dataset_name}_raw", f"{dataset_name.upper()}.ALL").resolve()
+        for doc_id, text in read_document(document_path):
             documents.append({
                 "text": text,
                 "dir": doc_id,
-                "topic": title
+                "topic": dataset_name,
             })
 
-    queries_dict = { query_id: text for query_id, text in dataset.queries_iter() }
+        # Queries
+        query_path = Path(__file__, "..", "..", "..", "test", f"{dataset_name}_raw", f"{dataset_name.upper()}.QRY").resolve()
+        for q_id, text in read_document(query_path):
+            queries_dict[q_id] = text
 
-    relevance = set()
-    for q_id, d_id, rel, _ in dataset.qrels_iter():
-        relevance.add((q_id, d_id, rel))
+        # Relevance
+        relevance_path = Path(__file__, "..", "..", "..", "test", f"{dataset_name}_raw", f"{dataset_name.upper()}.REL").resolve()
+        relevance = set(x for x in read_relevance(relevance_path))
+    else:
+        raise Exception(f"Corpus {dataset_name} not supported")
 
     context["documents"] = documents
     
@@ -115,7 +146,7 @@ def add_vectorial(context: dict):
     context.__delitem__("corpus_address")
 
     # Creating and building training model
-    training_model = VectorialModel(corpus_address, add_document_pipe=add_crainfield_training_documents, **context)
+    training_model = VectorialModel(corpus_address, add_document_pipe=add_training_documents, **context)
     training_build_context = training_model.build()
 
     context.update(training_build_context)
@@ -327,6 +358,7 @@ def rank_documents_rank_svm_classifier(context: dict):
 
 def classifier_query_to_vec(context: dict):
     """
+    Pipeline for converting the query to a vector
     """
     model = context["vectorial"]
     return model.query_to_vec_pipeline(context)
@@ -334,6 +366,7 @@ def classifier_query_to_vec(context: dict):
 
 def classifier_query(context: dict):
     """
+    Pipeline for processing the query
     """
     model = context["vectorial"]
     return model.query_pipeline(context)
@@ -341,7 +374,7 @@ def classifier_query(context: dict):
 
 class ClassificationSVMModel(InformationRetrievalModel):
     
-    def __init__(self, corpus_address: str, use_rank_svm=True, language: str = "english") -> None:
+    def __init__(self, corpus_address: str, use_rank_svm=True, dataset_name: str="cranfield", language: str = "english") -> None:
 
         query_pipeline = Pipeline(
             classifier_query,
@@ -349,7 +382,7 @@ class ClassificationSVMModel(InformationRetrievalModel):
         )
 
         build_pipeline = Pipeline(
-            add_crainfield_training_documents,
+            add_training_documents,
             add_vectorial,
             train_margin_classifier if not use_rank_svm else train_rank_classifier,
         )
@@ -363,7 +396,8 @@ class ClassificationSVMModel(InformationRetrievalModel):
         }
 
         build_context = {
-            "language": language
+            "language": language,
+            "dataset_name": dataset_name
         }
 
         feedback_pipeline = None # Default

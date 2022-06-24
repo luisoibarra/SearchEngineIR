@@ -72,23 +72,24 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                                     cursorColor: Colors.black,
                                     cursorWidth: 1,
                                     cursorHeight: 20,
-                                    onChanged: (text) {
+                                    onChanged : (text) async {
                                       if (text == "")
                                         provider.isTextFilled = false;
                                       else
                                         provider.isTextFilled = true;
-                                        FutureBuilder<List<String>>(
-                                                  future: mainScreenProvider.apiService.fetchQuery(
-                                                      context: context, 
-                                                      query: text),
-                                                  builder: (context,snapshot)
-                                                  { if (snapshot.hasData)
-                                                      querySug = snapshot.data as List<String>;
-                                                    else 
-                                                      querySug = [];
-                                                    return Container();
-                                                  }
-                                                  );
+                                        querySug = await mainScreenProvider.apiService.fetchQuery(context: context, query: text);
+                                        // FutureBuilder<List<String>>(
+                                        //           future: mainScreenProvider.apiService.fetchQuery(
+                                        //               context: context, 
+                                        //               query: text),
+                                        //           builder: (context,snapshot)
+                                        //           { if (snapshot.hasData)
+                                        //               querySug = snapshot.data as List<String>;
+                                        //             else 
+                                        //               querySug = [];
+                                        //             return Container();
+                                        //           }
+                                        //           );
                                         //here write the query expantion method 
                                     },
                                     textAlignVertical: TextAlignVertical.center,

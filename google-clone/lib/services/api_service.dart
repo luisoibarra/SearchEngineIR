@@ -11,6 +11,7 @@ class ApiService {
   static const _getQueryPath = "query";
   static const _getDocumentPath = "document";
   static const _applyFeedbackPath = "feedback";
+  static const _getQueryExpand = "expand";
 
   
   Future<QueryResponseModel?> fetchData(
@@ -47,6 +48,7 @@ class ApiService {
 
 
 
+
   Future<String?> fetchDocument(
       {required BuildContext context,
       required String documentDir}) async {
@@ -60,6 +62,22 @@ class ApiService {
     }
     return null;
   }
+
+  Future<List<String>> fetchQuery(
+      {required BuildContext context,
+      required String query}) async {
+    if (!this.useDummyData) {
+      final apiConfigurationService =
+          Provider.of<ApiConfigurationService>(context);
+      final uri = await apiConfigurationService.getUrl(_getQueryExpand,
+          queryParams: {"query": query});
+      final response = await http.get(uri);
+       List<String> result = List<String>.from(json.decode(response.body));
+        return result;
+    }
+    return [];
+  }
+
 
   Future<bool> applyFeedback({
     required BuildContext context,

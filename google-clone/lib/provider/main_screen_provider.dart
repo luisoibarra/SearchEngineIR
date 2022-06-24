@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_clone/widgets/hover_text.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:google_clone/services/api_service.dart';
 
 class MainScreenProvider extends ChangeNotifier {
+   final apiService = ApiService();
   bool _isHoveringOnTextField = false;
   bool _isFocusedTextField = false;
   bool _isTextFilled = false;

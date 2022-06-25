@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 from scipy.sparse import csr_matrix
 from .utils import save_object,get_object
+from nltk import word_tokenize
 
 
 
@@ -45,28 +46,21 @@ class QueryExpansionManager:
     Base class that manages the query expansion
     """
 
-    def __init__(self) -> None:
-        pass
-    
-    
-    # def generate_data():
-    #     context={}
-    #     context["corpus_address"] = Path(__file__) / ".." / "search_logic" / "corpus"
-    #     return read_documents_from_hard_drive(context)
-
-  
     def generate_words_dict(self,context:dict):
         
         docs = context["documents"]
+        language = context.get("language", "english")
         
-        words_dict = get_object([doc['dir'] for doc in docs],"words_dict")
-        word_list = get_object([doc['dir'] for doc in docs],"words_list")
+        cache_key = [doc['dir'] for doc in docs]
+
+        words_dict = get_object(cache_key,"words_dict")
+        word_list = get_object(cache_key,"words_list")
         
         if words_dict is None:
-            words = {""}
+            words = set()
        
             for doc in docs:
-                text_split = [ i.lower() for i in  doc["text"].split() if  (len(i)>1 or (list(i)[0]) not in string.punctuation)]
+                text_split = [ i.lower() for i in  word_tokenize(doc["text"], language) if  (len(i)>1 or (list(i)[0]) not in string.punctuation)]
                 words = words.union(set(text_split))
 
             words_dict = {}
@@ -74,8 +68,8 @@ class QueryExpansionManager:
                 words_dict[word] = i
 
             word_list = list(words)
-            save_object([doc['dir'] for doc in docs],words_dict, "words_dict")
-            save_object ([doc['dir'] for doc in docs],word_list, "words_list")
+            save_object(cache_key,words_dict, "words_dict")
+            save_object(cache_key,word_list, "words_list")
 
         context["words_dict"] = words_dict
         context["words_list"] = word_list
@@ -85,20 +79,23 @@ class QueryExpansionManager:
     def generate_sparse_matrix(self,context:dict):
         
         docs = context["documents"]
-        sparse_matrix = get_object([doc['dir'] for doc in docs],"sparse_matrix")
+        language = context.get("language", "english")
+
+        cache_key = [doc['dir'] for doc in docs]
+        sparse_matrix = get_object(cache_key,"sparse_matrix")
 
         if sparse_matrix is None:
             words_dict = context["words_dict"]
             sparse_matrix = csr_matrix((len(words_dict), len(words_dict)), dtype = np.int8)
             count = 0
             for doc in docs:
-                text_split = [ i.lower() for i in  doc["text"].split() if  (len(i)>1 or (list(i)[0]) not in string.punctuation)]
+                text_split = [ i.lower() for i in  word_tokenize(doc["text"], language) if  (len(i)>1 or (list(i)[0]) not in string.punctuation)]
              
                 for i in range(len(text_split)-1):
                     sparse_matrix[words_dict[text_split[i]], words_dict[text_split[i+1]]] += 1
                 count +=1 
                
-            save_object([doc['dir'] for doc in docs],sparse_matrix, "sparse_matrix")
+            save_object(cache_key,sparse_matrix, "sparse_matrix")
         
         context["sparse_matrix"] = sparse_matrix
         return context
@@ -107,7 +104,7 @@ class QueryExpansionManager:
         dict = context["words_dict"]
         words_list = context["words_list"]
         sparse_m = context["sparse_matrix"]
-        if(word in dict):
+        if word in dict:
             word_index = dict[word]
             word_row = sparse_m[word_index]
             non_zero_values = word_row.nonzero()[1]
@@ -123,11 +120,6 @@ class QueryExpansionManager:
         else: 
             return []
           
-   
-    
-    
-    
-    
     def build(self, context: dict):
         """
         Initialize the manager
@@ -140,7 +132,7 @@ class QueryExpansionManager:
         """
         Returns a rank for the query expansion for the given query
         """
-        words = query["text"].split()
-        word = words[len(words)-1].lower()
+        words = word_tokenize(query["text"], context.get("language", "english"))[-1]
+        word = words.lower()
         rank = self.get_expand_query(context,word)
-        return [query['text'] + " "+ x for x in rank[:5]] # TODO
+        return [query['text'] + " " + x for x in rank[:5]] # TODO

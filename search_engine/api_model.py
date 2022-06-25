@@ -10,8 +10,8 @@ import time as t
 import ir_datasets as ir
 
 # CHANGE CORPUS HERE
-corpus_name = "cranfield"
-# corpus_name = "med"
+# corpus_name = "cranfield"
+corpus_name = "med"
 
 path = Path(__file__) / ".." / "test" / f"{corpus_name}_corpus"
 CORPUS = path.resolve()

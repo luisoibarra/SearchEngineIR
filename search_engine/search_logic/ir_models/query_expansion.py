@@ -1,5 +1,6 @@
 
 
+import string
 from typing import List
 
 import numpy as np
@@ -63,10 +64,9 @@ class QueryExpansionManager:
         
         if words_dict is None:
             words = {""}
-           
-
+       
             for doc in docs:
-                text_split =[ i.lower() for i in  doc["text"].split()]
+                text_split = [ i.lower() for i in  doc["text"].split() if  (len(i)>1 or (list(i)[0]) not in string.punctuation)]
                 words = words.union(set(text_split))
 
             words_dict = {}
@@ -92,12 +92,12 @@ class QueryExpansionManager:
             sparse_matrix = csr_matrix((len(words_dict), len(words_dict)), dtype = np.int8)
             count = 0
             for doc in docs:
-                text_split = doc["text"].split()
+                text_split = [ i.lower() for i in  doc["text"].split() if  (len(i)>1 or (list(i)[0]) not in string.punctuation)]
+             
                 for i in range(len(text_split)-1):
                     sparse_matrix[words_dict[text_split[i]], words_dict[text_split[i+1]]] += 1
                 count +=1 
-                print(str(count) + " documentos procesados ")
-            
+               
             save_object([doc['dir'] for doc in docs],sparse_matrix, "sparse_matrix")
         
         context["sparse_matrix"] = sparse_matrix

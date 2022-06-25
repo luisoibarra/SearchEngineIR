@@ -167,10 +167,10 @@ se repite el término $i$ en el documento $j$. $idf_{j}$ es la frecuencia invers
 colección de documentos calculada por $\log{\frac{N}{n_j}}$ donde $n_j$ es la cantidad de documentos
 en donde aparece el término $j$.
 
-\subsubsection{Representación de la pregunta}
+\subsubsection{Representación de la consulta}
 
-La representación de la pregunta en el modelo vectorial es la misma que la representación de los 
-documentos, pero con una diferencia que se aplica a la pregunta una fórmula diferente.
+La representación de la consulta en el modelo vectorial es la misma que la representación de los 
+documentos, pero con una diferencia que se aplica una fórmula diferente.
 
 \begin{equation}
     (\alpha idf_i + (1-\alpha)\frac{tf_{ij}}{\max_{k} tf_{kj}}) idf_i
@@ -181,7 +181,7 @@ la contribución del segundo término \cite{alphaManning}.
 
 \subsubsection{Ranking de documentos}
 
-Para el ordenamiento de los documentos se utiliza la representación de la pregunta y de los documentos
+Para el ordenamiento de los documentos se utiliza la representación de la consulta y de los documentos
 en su forma vectorial. Para el cálculo de la similitud entre ambas se utiliza el coseno entre
 ambos vectores:
 
@@ -194,22 +194,22 @@ usuario.
 
 \subsection{Modelo Ranking SVM}
 
-El modelo Ranking SVM se basa en que los documentos se pueden representar como vectores
-en los cuales se guarda información acerca de sus características. Inicialmente un problema
-el problema con que trata SVM es uno de clasificación, por lo que se tendría que convertir
+El modelo Ranking SVM se basa en que los documentos y las consultas se pueden representar como vectores
+en los cuales se guarda información acerca de sus características e interacciones. Inicialmente
+el problema resuelto por SVM es uno de clasificación, por lo que se tendría que convertir
 el problema de Ranking a uno de clasificación. Para esto se considera la siguiente idea, se
 entrenará el modelo SVM para detectar si un documento es más relevante a otro con la misma query.
 
-\subsubsection{Representación de Documentos y Preguntas}
+\subsubsection{Representación de Documentos y Consultas}
 
-Dado que el modelo necesita tener información acerca de la pregunta y su relación con el documento
+Dado que el modelo necesita tener información acerca de la consulta y su relación con el documento,
 se modela una representación conjunta de ambos. Esta representación conjunta puede guardar todo tipo
 de información aunque en el trabajo se representa por la concatenación de los siguientes aspectos:
 
 \begin{itemize}
-	\item Coseno entre la representación vectorial TF-IDF de la pregunta y el documento
-	\item Cantidad de palabras que aparecen en la pregunta y el documento
-	\item Representación reducida del vector TF-IDF de la pregunta mediante descomposición SVD
+	\item Coseno entre la representación vectorial TF-IDF de la consulta y el documento
+	\item Cantidad de palabras que aparecen en la consulta y el documento
+	\item Representación reducida del vector TF-IDF de la consulta mediante descomposición SVD
 	\item Representación reducida del vector TF-IDF del documento mediante descomposición SVD
 \end{itemize}
 
@@ -246,6 +246,16 @@ $$
 Lo que en términos de SVM equivale a encontrar el hiperplano que maximiza la distancia entre las distintas clases
 del vector diferencia visto anteriormente.
 
+Con lo anterior se tiene un clasificador que contiene información de qué hace que los documentos y las 
+consultas sean relevantes o no, encontrando un separador que maximiza el margen entre estas diferencias.
+
+Para el orden de los documentos dado una consulta se propone el siguiente criterio, en donde los documentos son
+ordenados de mayor a menor por el valor del resultado \cite{rankSVM}:
+
+$$
+rsv(q, d_i) = w^* \theta_{iq}
+$$
+
 \subsection{Retroalimentación}
 
 Para la retroalimentación se eligió el algoritmo de Rocchio debido a su simplicidad. Este se basa 
@@ -270,6 +280,8 @@ Implementar algoritmo de expnsión de query
 
 \section{Interfaz gráfica}
 
+\subsection{Flutter}
+
 La interfaz gráfica actúa como un cliente REST que consume los servicios de búsqueda. Esta
 se presenta como un navegador web que le permite realizar todas las interacciones necesarias
 con el motor de búsqueda \ref{ui_fig}.
@@ -281,12 +293,25 @@ Entre las acciones posibles a realizar se encuentran:
 \item Hacer una consulta.
 \item Ver el contenido de un documento.
 \item Dar feedback mediante like o dislike.
-%TODO Mantener actualizada
 
 \end{itemize}
 
-Fue implementada en Flutter pudiendo ser compilada a varios sistemas operativos como Android,
-iOS además de a web.
+\subsection{Streamlit}
+
+La interfaz gráfica de streamlit consume directamente del código escrito, por lo que se 
+integra más fácil con los nuevos cambios que la versión de Flutter \ref{ui_streamlit_fig}.
+
+Entre las acciones posibles a realizar se encuentran las mismas que las de Flutter aunque se le
+agregan otras:
+
+\begin{itemize}
+
+\item Ver las expansiones de consulta.
+\item Ver las consultas asociadas al corpus con que se está trabajando
+\item Ver la relevancia de la consulta (si es textual del corpus) sobre los 
+documentos devueltos en el corpus con que
+
+\end{itemize}
 
 \section{Evaluación}
 
@@ -398,9 +423,14 @@ La consulta es pasada como argumento al metodo transform del mismo vectorizer ya
 
 \begin{figure}
 \includegraphics[width=\textwidth]{ui.jpg}
-\caption{Interfaz visual} \label{ui_fig}
+\caption{Interfaz visual Flutter} \label{ui_fig}
 \end{figure}
     
+\begin{figure}
+    \includegraphics[width=\textwidth]{ui_streamlit.png}
+    \caption{Interfaz visual streamlit} \label{ui_streamlit_fig}
+\end{figure}
+        
 \begin{thebibliography}{8}
 % \bibitem{ref_article1}
 % Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
@@ -418,10 +448,6 @@ La consulta es pasada como argumento al metodo transform del mismo vectorizer ya
 % Author, A.-B.: Contribution title. In: 9th International Proceedings
 % on Proceedings, pp. 1--2. Publisher, Location (2010)
 
-% \bibitem{ref_url1}
-% LNCS Homepage, \url{http://www.springer.com/lncs}. Last accessed 4
-% Oct 2017
-
 \bibitem{alphaManning}
 Christopher D. Manning, Prabhakar Raghavan, and Hinrich Schütze:
 An Introduction to Information Retrieval. Online edition, pp. 127 Cambridge University Press,
@@ -429,6 +455,10 @@ Cambridge, England (2009)
 
 \bibitem{lsaWiki}
 Wikipedia, \url{https://en.wikipedia.org/wiki/Latent\_semantic\_analysis}. Consultado 25 de junio de 2022
+
+\bibitem{rankSVM}
+Joachims: Optimizing Search Engines Using Clickthrough Data. In: Proceedings of the ACM Conference 
+on Knowledge Discovery and Data Mining (KDD). ACM (2002)
 
 \end{thebibliography}
 \end{document}

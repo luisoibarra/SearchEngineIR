@@ -35,8 +35,8 @@ def on_expansion_click(expansion: str):
 
 # Sidebarss
 st.sidebar.subheader(f"Corpus {corpus_name.capitalize()} queries")
-for query in get_queries(corpus_name):
-    st.sidebar.button(query, on_click=on_expansion_click, args=(query,))
+for i,corpus_query in enumerate(get_queries(corpus_name)):
+    st.sidebar.button(corpus_query, key=f"{corpus_query}btn{i}", on_click=on_expansion_click, args=(corpus_query,))
 
 
 with st.expander("Query expansions"):

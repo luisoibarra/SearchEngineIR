@@ -9,12 +9,12 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 def smooth_query_vec(context: dict):
     """
     Smooth calculated query vector in `query` by some constant
-    if any in `smooth_query_alpha`, defaults to 0.4.
+    if any in `smooth_query_alpha`, defaults to 0.
     
     alpha*idf_i + (1-alpha)ntf_{iq} idf_i
     """
     query = context["query"]
-    alpha = context.get("smooth_query_alpha", 0.4)
+    alpha = context.get("smooth_query_alpha", 0)
     idf = context.get("idf")
     matrix = context["term_matrix"]
     for i,term in enumerate(matrix.all_terms):

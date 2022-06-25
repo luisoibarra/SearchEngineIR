@@ -16,7 +16,7 @@
 
 \begin{document}
 %
-\title{Motor de Búsqueda Vectorial (Título pendiente)}
+\title{Motor de Búsqueda}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
@@ -47,7 +47,7 @@ algoritmos y procesamientos usados para dicha implementación. Se obtuvieron res
 El resultado final es presentado al usuario mediante una interfaz gráfica que permite
 al usuario realizar consultas de manera natural.
 
-\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial.}
+\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial. \and SVM}
 \end{abstract}
 
 \section{Introducción}
@@ -69,11 +69,10 @@ cuales surgen nuevas variantes, los tipos son:
     \item Booleano
 \end{itemize}
 
-%TODO Poner más cosas sobre los modelos?
-
 El objetivo del trabajo consiste en la implementación y evaluación de un motor de búsqueda,
-en este caso se usa el modelo vectorial. Para un fácil uso también es necesaria una manera
-de que el usuario interactúe con este.
+en este caso se usa el modelo vectorial y el modelo de Ranking SVM. Además es necesario la
+construcción de una interfaz visual para la interacción con el usuario, en este caso se usó
+streamlit y Flutter para la construcción de páginas web con esta finalidad.
 
 El trabajo de divide en varias secciones, primero se analizará la arquitectura del motor de
 búsqueda, luego se presentará el algoritmo y procesamiento usado para la implementación de 
@@ -97,10 +96,10 @@ tiene la etapa de desarrolo es que en esta se realizan muchos cambios en el cód
 o cambiando funcionalidades al procesamiento, además estas funcionalidades generalmente se pueden usar
 de manera independiente para otros procesamientos como por ejemplo la implementación de otro modelo
 dentro del mismo motor de búsqueda. Para poder resolver este problema de una manera sencilla se estructura
-el proyecto pediante una arquitectura de tuberías (pipelines). Esta arquitectura consiste en una serie
+el proyecto mediante una arquitectura de tuberías (pipelines). Esta arquitectura consiste en una serie
 de tuberías que se conectan entre sí, pasando un contexto entre ellas y combinando de forma desacoplada
 los resultados obtenidos de cada tubería. Un ejemplo de lo anterior es que la lectura de los documentos
-es independiente de su procesamiento así que si se quiere cambiar esta funcionalidad es solemente necesario
+es independiente de su procesamiento así que si se quiere cambiar esta funcionalidad es solamente necesario
 cambiar el pedazo del pipeline encargado de esto, otro ejemplo de las ventajas es que el proceso de
 tokenización de los documentos generalmente es el mismo, en el caso de que se quieran implementar varios
 modelos se puede reutilizar este pipeline sin mucho esfuerzo y manteniendo la misma arquitectura \ref{pipeline_fig}.
@@ -119,6 +118,8 @@ Los principales endpoints de esta interfaz son:
 documentos relevanes de la búsqueda.
     \item GET \url{document/?document\_dir=document\_dir} Devuelve el contenido del documento asociado
 al id dado.
+	\item GET \url{expand/?query=query} Devuelve las posibles expansiones de query encontradas por el programa
+	\item POST \url{feedback/} Envía la información para marcar como relevante o no los documentos mostrados.
 \end{itemize}
 
 \section{Implementación del motor de búsqueda}
@@ -134,9 +135,7 @@ framework nltk. Esta es dividida principalmente en varias etapas:
     \item Convertir el texto en tokens
     \item Limpiar los tokens
     \item Remover las stopwords
-    \item Aplicar stemming o lemmatizing a los tokens o
-    \item Aplicar similitud semántica a los tokens(wordnet,synsets,lemmas)
-    %TODO Mantener actualizado con el desarrollo del proyecto
+    \item Aplicar stemming o lemmatizing a los tokens
 \end{enumerate}
 
 Mediante estos proceso se llega al final de esta etapa con una lista de tokens procesada la cual
@@ -146,6 +145,12 @@ para su procesamiento.
 Este procesamiento puede ser el mismo independientemente del tipo de modelo utilizado.
 
 \subsection{Modelo Vectorial}
+
+El modelo vectorial se centra en la idea de que la relevancia de los documentos con la query está 
+dada por las palabras que contienen. Para esto se encuentran representaciones vectoriales de ambos
+para que se pueda hacer la comparación. En el modelo planteado en el trabajo se hace una implementación
+del modelo clásico vectorial el cual no toma en cuenta el orden de las palabras en su representación, haciendo
+de este un modelo estilo bolsa de palabras.
 
 \subsubsection{Representación de los documentos}
 
@@ -187,7 +192,61 @@ ambos vectores:
 Una vez se tienen estos valores se ordenan de mayor a menor y son devueltos en ese orden al
 usuario.
 
-\subsubsection{Retroalimentación}
+\subsection{Modelo Ranking SVM}
+
+El modelo Ranking SVM se basa en que los documentos se pueden representar como vectores
+en los cuales se guarda información acerca de sus características. Inicialmente un problema
+el problema con que trata SVM es uno de clasificación, por lo que se tendría que convertir
+el problema de Ranking a uno de clasificación. Para esto se considera la siguiente idea, se
+entrenará el modelo SVM para detectar si un documento es más relevante a otro con la misma query.
+
+\subsubsection{Representación de Documentos y Preguntas}
+
+Dado que el modelo necesita tener información acerca de la pregunta y su relación con el documento
+se modela una representación conjunta de ambos. Esta representación conjunta puede guardar todo tipo
+de información aunque en el trabajo se representa por la concatenación de los siguientes aspectos:
+
+\begin{itemize}
+	\item Coseno entre la representación vectorial TF-IDF de la pregunta y el documento
+	\item Cantidad de palabras que aparecen en la pregunta y el documento
+	\item Representación reducida del vector TF-IDF de la pregunta mediante descomposición SVD
+	\item Representación reducida del vector TF-IDF del documento mediante descomposición SVD
+\end{itemize}
+
+La descomposición de SVD se basa en el proceso de Latent Semantic Analysis (LSA) cuyo objetivo 
+consiste en reducir la dimensionalidad de los términos aplicándole la descomposición SVD a la
+matriz de TF-IDF generada en orden de obtener una representación más compacta y que guarde 
+información semántica de los términos \cite{lsaWiki}.
+
+\subsubsection{Ranking de los documentos}
+
+Para la conversión del problema de ranking a uno de clasificación se parte de la siguiente
+hipótesis en el espacio del trabajo con SVMs:
+
+$$
+w\theta_{iq} > w\theta_{jq} \iff r_q(d_i) > r_q(d_j)
+$$
+
+Donde:
+
+\begin{itemize}
+
+	\item $w$: Son los pesos encontrados de aplicar SVM al conjunto de entrenamiento
+	\item $\theta_{iq}$: Es la representación conjunta del documento i con la query
+	\item $r_q(d_i)$: Es la relevancia del documento i con respecto a la query
+	
+\end{itemize}
+
+Partiendo de lo anterior se tiene que:
+
+$$
+w(\theta_{iq} - \theta_{jq}) > 0 \iff r_q(d_i) - r_q(d_j) > 0
+$$
+
+Lo que en términos de SVM equivale a encontrar el hiperplano que maximiza la distancia entre las distintas clases
+del vector diferencia visto anteriormente.
+
+\subsection{Retroalimentación}
 
 Para la retroalimentación se eligió el algoritmo de Rocchio debido a su simplicidad. Este se basa 
 en el cálculo de centroides de un conjunto de documentos relevantes y no relevantes a una query
@@ -204,7 +263,7 @@ con la query, aunque se pueden crear variantes de esta estructura que devuelvan 
 relevantes que estén en una zona cercana y no exacta aumentando así el recuperado de estos documentos.
 %TODO Implementar esta última idea, ver qué funciona mejor y ponerlo en el informe
 
-\subsubsection{Expansión de query}
+\subsection{Expansión de query}
 
 %TODO Implementar
 Implementar algoritmo de expnsión de query
@@ -243,9 +302,9 @@ El modelo Vectorial pese a ser sencillo y obtener buenos resultados de manera si
 presento problemas para la recuperación de informacion meramente semantica con respecto a una consulta. Consultas del tipo: "qué","como" 
 y de ese estilo que requieren de una respuesta al significado semantico de la misma consulta.
 La biblioteca de python cuenta con un TfidfVectorizer el cual nos da como resultado una matriz de TF*IDF del corpus de documentos
-entregados como argumento a su metodo fit_transform.
+entregados como argumento a su metodo fit\_transform.
 La consulta es pasada como argumento al metodo transform del mismo vectorizer ya ajustado al corpus de documentos, lo cual devuelve un
- vector normalizado de tf*idf de dicha consulta. Por tanto en el metodo smooth_query donde deberia haber una multiplicacion de tf*idf 
+ vector normalizado de tf*idf de dicha consulta. Por tanto en el metodo smooth\_query donde deberia haber una multiplicacion de tf*idf 
  solo se encuentra query["vector"]. 
 
 
@@ -367,6 +426,9 @@ La consulta es pasada como argumento al metodo transform del mismo vectorizer ya
 Christopher D. Manning, Prabhakar Raghavan, and Hinrich Schütze:
 An Introduction to Information Retrieval. Online edition, pp. 127 Cambridge University Press,
 Cambridge, England (2009)
+
+\bibitem{lsaWiki}
+Wikipedia, \url{https://en.wikipedia.org/wiki/Latent\_semantic\_analysis}. Consultado 25 de junio de 2022
 
 \end{thebibliography}
 \end{document}

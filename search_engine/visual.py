@@ -1,7 +1,7 @@
 from pathlib import Path
 import streamlit as st
 from models.models import Document, FeedbackModel
-from api_model import get_query_expansions, apply_feedback_to_model, get_document_content, get_documents
+from api_model import get_queries, get_query_expansions, apply_feedback_to_model, get_document_content, get_documents, corpus_name, get_relevants
 
 # base_path = (Path(__file__) / "..").resolve()
 
@@ -26,12 +26,18 @@ if 'query' not in st.session_state:
 
 # Body
 
-st.header("Search Engine")
+st.header(f"Search Engine {corpus_name.capitalize()}")
 
 query = st.text_input("Query", value=st.session_state['query'])
 
 def on_expansion_click(expansion: str):
     st.session_state['query'] = expansion
+
+# Sidebarss
+st.sidebar.subheader(f"Corpus {corpus_name.capitalize()} queries")
+for i,corpus_query in enumerate(get_queries(corpus_name)):
+    st.sidebar.button(corpus_query, key=f"{corpus_query}btn{i}", on_click=on_expansion_click, args=(corpus_query,))
+
 
 with st.expander("Query expansions"):
     if query:
@@ -71,10 +77,12 @@ def on_expand_query(query: str):
 # Show results
 
 if query:
+    relevant, not_relevant = get_relevants(query, corpus_name)
     ranked_documents = get_documents(query, 0, batch_size=2000).documents # model.resolve_query(query)
 
     for doc in ranked_documents[:st.session_state["document_amount"]]:
-        col1, col2, col3 = st.columns(3)
+        col0, col1, col2, col3 = st.columns(4)
+        col0.text("R" if doc.documentName in relevant else "NR" if doc.documentName in not_relevant else "-")
         col1.button(doc.documentName, key=doc.documentDir+"btn1", on_click=on_button_click, args=(doc,))
         col2.button("Relevant", key=doc.documentDir+"btn2", on_click=on_mark_relevant, args=(doc, query, True))
         col3.button("Not Relevant", key=doc.documentDir+"btn3", on_click=on_mark_relevant, args=(doc, query, False))

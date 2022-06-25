@@ -11,15 +11,18 @@ if __name__ == "__main__":
 from search_logic.ir_models.base import InformationRetrievalModel
 from search_logic.ir_models.classification import ClassificationSVMModel
 from search_logic.ir_models.vectorial import VectorialModel
+from search_logic.ir_models.utils import read_document, read_relevance
 
 BASE_PATH = (Path(__file__) / "..").resolve()
 
-def get_qrels_dataframe():
+def get_qrels_dataframe(qrels_iterator, raw_tuple=False):
     """
     Converts the Cranfield Relations Dataset into a DataFrame
     """
-    dataset = ir.load("cranfield")
-    df = pd.DataFrame(((q_id, d_id, rel) for q_id, d_id, rel, _ in dataset.qrels_iter()) ,columns=["query_id", "doc_id", "relevance"])
+    if raw_tuple:
+        df = pd.DataFrame((qrel for qrel in qrels_iterator) ,columns=["query_id", "doc_id", "relevance"])
+    else:
+        df = pd.DataFrame(((qrel.query_id, qrel.doc_id, qrel.relevance) for qrel in qrels_iterator) ,columns=["query_id", "doc_id", "relevance"])
     return df
 
 def get_pickled_stats() -> pd.DataFrame:
@@ -30,13 +33,13 @@ def get_pickled_stats() -> pd.DataFrame:
     stats = pd.read_pickle(str(stats_path))
     return stats
 
-def eval_model(model: InformationRetrievalModel, use_pickled_stats=False):
+def eval_model(model_name: str, corpus_name: str, model: InformationRetrievalModel, use_pickled_stats=False):
     """
     Simple test to Cranfield to see basic metrics.
     """
-    base_path = BASE_PATH / "cranfield_corpus"
+    base_path = BASE_PATH / f"{corpus_name}_corpus"
     relevance_threshold = 0
-    stats_path = (base_path / ".." / "stats.df").resolve()
+    stats_path = (base_path / ".." / f"{model_name}_{corpus_name}_corpus.df").resolve()
     
     if use_pickled_stats and stats_path.exists():
         stats = get_pickled_stats()
@@ -47,11 +50,24 @@ def eval_model(model: InformationRetrievalModel, use_pickled_stats=False):
     model.build()
     print("Build Time:", time.time() - start, "seconds")
 
-    dataset = ir.load("cranfield")
-    queries = { query_id: text for query_id, text in dataset.queries_iter() }
-    qrels_df = get_qrels_dataframe()
+    if corpus_name in ["cranfield"]:
+        dataset = ir.load(corpus_name)
+        queries = { q.query_id: q.text for q in dataset.queries_iter() }
+        qrels_df = get_qrels_dataframe(dataset.qrels_iter())
+    elif corpus_name in ["med"]:
+        queries = {q_id: text for q_id, text in read_document(BASE_PATH / f"{corpus_name}_raw" / f"{corpus_name.upper()}.QRY")}
+        qrel_iterator = read_relevance(BASE_PATH / f"{corpus_name}_raw" / f"{corpus_name.upper()}.REL")
+        qrels_df = get_qrels_dataframe(qrel_iterator, True)
 
-    stats = pd.DataFrame(columns=["query_id", "recall", "precision", "f1", "rank_threshold"])
+    stats = {
+        "query_id": [],
+        "recall": [],
+        "precision": [],
+        "f1": [],
+        "relevant_retrieved": [],
+        "total_relevants": [],
+        "rank_threshold": []
+    }
 
     for query_id, qrel in qrels_df.groupby(["query_id"]):
         query = queries.get(query_id)
@@ -76,14 +92,15 @@ def eval_model(model: InformationRetrievalModel, use_pickled_stats=False):
             prec = len(rec_rel_docs)/len(rec_docs) if rec_docs else nan
             rec = len(rec_rel_docs)/len(relevant_docs) if not relevant_docs.empty else nan
             f1 = 2 * prec * rec/(prec + rec if prec + rec != 0 else 1)
-            stats = stats.append({
-                "query_id": query_id, 
-                "recall": rec, 
-                "precision": prec, 
-                "f1": f1,
-                "rank_threshold": total_rank_to_check,
-            }, ignore_index=True)
+            stats["query_id"].append(query_id)
+            stats["recall"].append(rec)
+            stats["precision"].append(prec)
+            stats["relevant_retrieved"].append(len(rec_rel_docs))
+            stats["total_relevants"].append(len(relevant_docs))
+            stats["f1"].append(f1)
+            stats["rank_threshold"].append(total_rank_to_check)
 
+    stats = pd.DataFrame(stats)
     print("Test Time:", time.time() - start, "seconds")
     stats.to_pickle(str(stats_path))
     print_stats_info(stats)
@@ -101,16 +118,20 @@ def print_stats_info(stats: pd.DataFrame):
         print("Rank Threshold", rank_threshold)
         print(clean_stats.describe())
         print("Recall mean", clean_stats["recall"].mean())
+        print("Recall max", clean_stats["recall"].max())
         print("Precision mean", clean_stats["precision"].mean())
         print("F1 mean", clean_stats["f1"].mean())
         print()
 
-print("VECTORIAL")
-model = VectorialModel(BASE_PATH / "cranfield_corpus") 
-eval_model(model)
-print()
 
-print("SVM")
-model = ClassificationSVMModel(BASE_PATH / "cranfield_corpus")
-eval_model(model)
-print()
+use_saved_df = False
+for corpus_name in ["cranfield", "med"]:
+    print("VECTORIAL", corpus_name)
+    model = VectorialModel(BASE_PATH / f"{corpus_name}_corpus") 
+    eval_model("vectorial", corpus_name, model, use_saved_df)
+    print()
+
+    print("SVM", corpus_name)
+    model = ClassificationSVMModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name)
+    eval_model("svm", corpus_name, model, use_saved_df)
+    print()

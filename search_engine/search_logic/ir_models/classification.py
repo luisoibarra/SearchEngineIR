@@ -1,21 +1,34 @@
-from typing import List, Tuple
-from sklearn.svm import LinearSVC
+from typing import List, Optional, Tuple
+from sklearn.svm import LinearSVC, SVC
+from sklearn.decomposition import PCA, TruncatedSVD
 import ir_datasets as ir
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pathlib import Path
 
-from .base import InformationRetrievalModel
+from .base import InformationRetrievalModel, VecMatrix
 from .utils import get_object, save_object, read_document, read_relevance
 
 from .vectorial import VectorialModel
 from ..pipes.pipeline import Pipeline
 
-def __rank_dist(classifier: LinearSVC, query: dict, doc_dicts: dict) -> List[Tuple[float, dict]]:
+def __rank_dist(classifier: SVC, query: dict, doc_dicts: dict, decompositor) -> List[Tuple[float, dict]]:
     ranking = []
+
+    # print("query")
+    # for i,x in enumerate(query["vector"]):
+    #     if abs(x) > 0.00001:
+    #         print(i,x)
+
+    # print("coeff svm")
+    # for i,x in enumerate(classifier.coef_[0]):
+    #     if abs(x) > 0.00001:
+    #         print(i,x)
 
     # See pag ~340 Manning, Optimizing Search Engines using Clicktrhough Data
     for doc_i in doc_dicts.values():
-        d_q_feature = __get_feature(doc_i, query)
+        d_q_feature = __get_feature(doc_i, query, decompositor)
 
         # Calculating the distance from the margin plane
         w = classifier.decision_function([d_q_feature])
@@ -24,7 +37,7 @@ def __rank_dist(classifier: LinearSVC, query: dict, doc_dicts: dict) -> List[Tup
     
     return ranking
 
-def __rank_pairwise(classifier: LinearSVC, query: dict, doc_dicts: dict) -> List[Tuple[float, dict]]:
+def __rank_pairwise(classifier: SVC, query: dict, doc_dicts: dict, decompositor) -> List[Tuple[float, dict]]:
     ranking = {doc_id: 0 for doc_id in doc_dicts}
 
     # Optimization
@@ -33,10 +46,10 @@ def __rank_pairwise(classifier: LinearSVC, query: dict, doc_dicts: dict) -> List
     # See pag 345 Manning # Not feasible |D|^2
     list_doc = list(doc_dicts)
     for i, d_id_i in enumerate(list_doc):
-        d_i_q_feature = __get_feature(doc_dicts[d_id_i], query)
+        d_i_q_feature = __get_feature(doc_dicts[d_id_i], query, decompositor)
         for j, d_id_j in enumerate(list_doc[i+1:], i+1):
             if d_id_j not in feature_dict:
-                d_j_q_feature = __get_feature(doc_dicts[d_id_j], query)
+                d_j_q_feature = __get_feature(doc_dicts[d_id_j], query, decompositor)
                 feature_dict[d_id_j] = d_j_q_feature
             else:
                 d_j_q_feature = feature_dict[d_id_j]
@@ -51,7 +64,7 @@ def __rank_pairwise(classifier: LinearSVC, query: dict, doc_dicts: dict) -> List
 
     return ranking
 
-def __get_feature(doc_i_repr: dict, query_repr: dict):
+def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
     """
     Get the feature vector for the document and the query
     """
@@ -61,17 +74,33 @@ def __get_feature(doc_i_repr: dict, query_repr: dict):
     # Cosine Similarity
     cosine = np.dot(q_vec,d_vec)/(np.linalg.norm(q_vec) * np.linalg.norm(d_vec))
 
+    q_vec_dec = decompositor.transform([q_vec])[0]
+    d_vec_dec = decompositor.transform([d_vec])[0]
+    feature_vec = [
+        len(set(query_repr["tokens"]).intersection(doc_i_repr["tokens"])), 
+        cosine,
+    ]
     # Feature: QueryVec|DocVec|Cosine|TODO FEATURE ENGINEERING
     
+    # print("query_decom")
+    # for i,x in enumerate(q_vec_dec):
+    #     if abs(x) > 0.00001:
+    #         print(i,x)
+    # print("doc_decom")
+    # for i,x in enumerate(d_vec_dec):
+    #     if abs(x) > 0.00001:
+    #         print(i,x)
+    # print("other")
+    # for i,x in enumerate(feature_vec):
+    #     if abs(x) > 0.00001:
+    #         print(i,x)
+
     feature = np.concatenate((
-            q_vec, 
-            d_vec, 
-            [
-                len(set(query_repr["tokens"]).intersection(doc_i_repr["tokens"])), 
-            ],
-            [
-                cosine
-            ]
+            # q_vec, 
+            # d_vec, 
+            q_vec_dec, 
+            d_vec_dec, 
+            feature_vec,
         ), 
     axis=0)
     return feature
@@ -160,6 +189,20 @@ def add_vectorial(context: dict):
 
     return context
 
+def add_decompositor(context: dict):
+    """
+    Adds a `decompositor` to the context decomposing the vectors into a length of `decomposition_size` 
+    """
+    matrix: VecMatrix = context["term_matrix"]
+    
+    decompositor = TruncatedSVD(context["decomposition_size"])
+    # context["decompositor"] = TruncatedSVD(context["decomposition_size"])
+
+    decompositor.fit(matrix.matrix)
+
+    context["decompositor"] = decompositor
+
+    return context
 
 def train_margin_classifier(context: dict):
     """
@@ -171,7 +214,7 @@ def train_margin_classifier(context: dict):
     queries_dict = context["training_queries_dict"]
     relevances = context["training_relevance_tuples"]
     training_documents = context["training_documents"]
-
+    decompositor = context.get("decompositor")
 
     training_doc_cache_key = [doc["dir"] for doc in training_documents]
     classifier = get_object(training_doc_cache_key, "svm")
@@ -179,7 +222,8 @@ def train_margin_classifier(context: dict):
         context["classifier"] = classifier
         return context
 
-    classifier = LinearSVC()
+    # classifier = LinearSVC() 
+    classifier = SVC(kernel="poly") 
 
     doc_dicts = { doc_id: doc_repr for doc_id, doc_repr in [(Path(doc["dir"]).name.split(".")[0], doc) for doc in training_documents] }
 
@@ -207,7 +251,7 @@ def train_margin_classifier(context: dict):
         if d_id not in doc_dicts:
             print(f"Missing doc for doc_id: {d_id}")
             continue
-        d_q_feature = __get_feature(doc_dicts[d_id], query_repr_dicts[q_id])
+        d_q_feature = __get_feature(doc_dicts[d_id], query_repr_dicts[q_id], decompositor)
         features.append(d_q_feature)
         label = 0 if rel <= 0 else 1
         labels.append(label)
@@ -216,6 +260,11 @@ def train_margin_classifier(context: dict):
     print("Feature size:", len(features[0]))
     print("Training samples:", len(features))
     classifier.fit(features, labels)
+
+    # print("Relevants SVM Coefficients")
+    # for i,x in enumerate(classifier.coef_[0]):
+    #     if abs(x) > 0.000001:
+    #         print("Pos",i,"value",x)
 
     save_object([doc["dir"] for doc in training_documents], classifier, "svm")
 
@@ -237,7 +286,7 @@ def train_rank_classifier(context: dict):
     queries_dict = context["training_queries_dict"]
     relevances = context["training_relevance_tuples"]
     training_documents = context["training_documents"]
-
+    decompositor = context.get("decompositor")
 
     training_doc_cache_key = [doc["dir"] for doc in training_documents]
     classifier = get_object(training_doc_cache_key, "svm_rank")
@@ -273,7 +322,7 @@ def train_rank_classifier(context: dict):
     for q_id, query_docs_info in query_info.items():
         for i, d_id_i in enumerate(query_docs_info):
             d_i_rel = query_doc_relevance[q_id, d_id_i]
-            d_i_feature = __get_feature(doc_dicts[d_id_i], query_repr_dicts[q_id])
+            d_i_feature = __get_feature(doc_dicts[d_id_i], query_repr_dicts[q_id], decompositor)
             
             for j, d_id_j in enumerate(query_docs_info[i+1:], i+1):
                 d_j_rel = query_doc_relevance[q_id, d_id_j]
@@ -284,7 +333,7 @@ def train_rank_classifier(context: dict):
                 if d_i_rel < d_j_rel:
                     d_id_i, d_id_j = d_id_j, d_id_i
 
-                d_j_feature = __get_feature(doc_dicts[d_id_j], query_repr_dicts[q_id])
+                d_j_feature = __get_feature(doc_dicts[d_id_j], query_repr_dicts[q_id], decompositor)
                 
                 positive_result = d_i_feature - d_j_feature
                 
@@ -302,6 +351,11 @@ def train_rank_classifier(context: dict):
     print("Training samples:", len(features))
     classifier.fit(features, labels)
 
+    # print("Relevants SVM Coefficients")
+    # for i,x in enumerate(classifier.coef_[0]):
+    #     if abs(x) > 0.000001:
+    #         print("Pos",i,"value",x)
+
     save_object(training_doc_cache_key, classifier, "svm_rank")
 
     mean_accuracy = classifier.score(features, labels)
@@ -318,14 +372,15 @@ def rank_documents_svm_margin_distance_classifier(context: dict):
     Distance will be negative in case of been in the NonRelevant class
     """
 
-    classifier: LinearSVC = context["classifier"]
+    classifier: SVC = context["classifier"]
+    decompositor = context.get("decompositor")
 
     query = context["query"]
     documents = context["documents"]
 
     doc_dicts = { doc_id: doc_repr for doc_id, doc_repr in [(doc["dir"], doc) for doc in documents] }
 
-    ranking = __rank_dist(classifier, query, doc_dicts)
+    ranking = __rank_dist(classifier, query, doc_dicts, decompositor)
 
     ranking.sort(key=lambda x: -x[0])
 
@@ -339,15 +394,16 @@ def rank_documents_rank_svm_classifier(context: dict):
     Ranking is done by comparing the amount doc_i's winnings.
     """
     
-    classifier: LinearSVC = context["classifier"]
+    classifier: SVC = context["classifier"]
+    decompositor = context.get("decompositor")
 
     query = context["query"]
     documents = context["documents"]
 
     doc_dicts = { doc_id: doc_repr for doc_id, doc_repr in [(doc["dir"], doc) for doc in documents] }
 
-    # ranking = __rank_pairwise(classifier, query, doc_dicts) # Not feasible
-    ranking = __rank_dist(classifier, query, doc_dicts)
+    # ranking = __rank_pairwise(classifier, query, doc_dicts, decompositor) # Not feasible
+    ranking = __rank_dist(classifier, query, doc_dicts, decompositor)
 
     ranking.sort(key=lambda x: -x[0])
 
@@ -384,6 +440,7 @@ class ClassificationSVMModel(InformationRetrievalModel):
         build_pipeline = Pipeline(
             add_training_documents,
             add_vectorial,
+            add_decompositor,
             train_margin_classifier if not use_rank_svm else train_rank_classifier,
         )
 
@@ -397,7 +454,8 @@ class ClassificationSVMModel(InformationRetrievalModel):
 
         build_context = {
             "language": language,
-            "dataset_name": dataset_name
+            "dataset_name": dataset_name,
+            "decomposition_size": 100
         }
 
         feedback_pipeline = None # Default

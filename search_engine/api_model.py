@@ -9,13 +9,14 @@ from pathlib import Path
 import time as t
 import ir_datasets as ir
 
-# corpus_name = "cranfield"
-corpus_name = "med"
+# CHANGE CORPUS HERE
+corpus_name = "cranfield"
+# corpus_name = "med"
 
-# path = Path(__file__) / ".." / "search_logic" / "corpus"
 path = Path(__file__) / ".." / "test" / f"{corpus_name}_corpus"
 CORPUS = path.resolve()
 
+# CHANGE MODEL HERE
 # model = VectorialModel(CORPUS)
 model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name)
 

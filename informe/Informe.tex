@@ -199,6 +199,8 @@ en los cuales se guarda información acerca de sus características e interaccio
 el problema resuelto por SVM es uno de clasificación, por lo que se tendría que convertir
 el problema de Ranking a uno de clasificación. Para esto se considera la siguiente idea, se
 entrenará el modelo SVM para detectar si un documento es más relevante a otro con la misma query.
+Para la implementación de dicho algoritmo se usó la implementación de SVM de sklearn, probando con
+distintos tipos y parámetros.
 
 \subsubsection{Representación de Documentos y Consultas}
 
@@ -217,6 +219,9 @@ La descomposición de SVD se basa en el proceso de Latent Semantic Analysis (LSA
 consiste en reducir la dimensionalidad de los términos aplicándole la descomposición SVD a la
 matriz de TF-IDF generada en orden de obtener una representación más compacta y que guarde 
 información semántica de los términos \cite{lsaWiki}.
+
+La representación final es un vector de tamaño 202, ya que se hace la reducción del vector documento y consulta
+a tamaño 100.
 
 \subsubsection{Ranking de los documentos}
 
@@ -256,6 +261,11 @@ $$
 rsv(q, d_i) = w^* \theta_{iq}
 $$
 
+\subsubsection{SVM}
+
+En la elección del tipo de SVM a utilizar se probaron diferentes kernels, el linear, polinomial y RBF, con estos
+se obtuvieron resultados similares, logrando una precisión en el entrenamiento de 
+
 \subsection{Retroalimentación}
 
 Para la retroalimentación se eligió el algoritmo de Rocchio debido a su simplicidad. Este se basa 
@@ -284,7 +294,7 @@ Implementar algoritmo de expnsión de query
 
 La interfaz gráfica actúa como un cliente REST que consume los servicios de búsqueda. Esta
 se presenta como un navegador web que le permite realizar todas las interacciones necesarias
-con el motor de búsqueda \ref{ui_fig}.
+con el motor de búsqueda Figura \ref{ui_fig}.
 
 Entre las acciones posibles a realizar se encuentran:
 
@@ -299,7 +309,7 @@ Entre las acciones posibles a realizar se encuentran:
 \subsection{Streamlit}
 
 La interfaz gráfica de streamlit consume directamente del código escrito, por lo que se 
-integra más fácil con los nuevos cambios que la versión de Flutter \ref{ui_streamlit_fig}.
+integra más fácil con los nuevos cambios que la versión de Flutter Figura \ref{ui_streamlit_fig}.
 
 Entre las acciones posibles a realizar se encuentran las mismas que las de Flutter aunque se le
 agregan otras:
@@ -315,15 +325,93 @@ documentos devueltos en el corpus con que
 
 \section{Evaluación}
 
-%TODO
-Hablar del corpus de evaluación y exponer las métricas estudiadas y que tan bien se desempeña el
-motor de búsqueda.
+Para la evaluación del motor de búsqueda se utilizaron dos corpus. El primero de estos
+es el corpus de Cranfield, este contiene los resúmenes de 1400 artículos científicos, además
+de tener unas 225 consultas con 1800 relaciones de relevancia entre estas y los documentos anotados.
+El otro corpus usado es el Med, el cual contiene 1033 archivos que tratan sobre resúmenes de investigaciones
+médicas, este presenta 30 consultas las cuales se relacionan 696 veces con los documentos, siendo estas
+relaciones todas positivas.
+
+Las métricas usadas para evaluar los modelos son precisión, recobrado y F1. Debido a que el diseño del
+motor de búsqueda devuelve todos los documentos, se utilizaron diferentes niveles de corte en la evaluación
+de estos. Las métricas fueron calculadas para cada consulta en el corpus y se les halló la media.
+
+\subsection{Modelo Vectorial}
+
+\begin{table}
+	\caption{Modelo Vectorial Cranfield}\label{cran_vec_result}
+ \begin{tabular}{|l|l|l|l|}
+ \hline
+ 	Corte &  Precisión & Recobrado & F1\\
+ \hline
+	30 & 0.003 & 0.014 & 0.005\\
+	50 & 0.004 & 0.024 & 0.007\\
+	100 & 0.004 & 0.052 & 0.008\\
+ \hline
+ \end{tabular}
+\end{table}
+
+
+\begin{table}
+	\caption{Modelo Vectorial Med}\label{med_vec_result}
+ \begin{tabular}{|l|l|l|l|}
+ \hline
+ 	Corte &  Precisión & Recobrado & F1\\
+ \hline
+	30 & 0.04 & 0.03 & 0.036\\
+	50 & 0.05 & 0.05 & 0.048\\
+	100 & 0.05 & 0.11 & 0.066\\
+ \hline
+ \end{tabular}
+\end{table}
+
+\subsection{Modelo Ranking SVM}
+
+
+\begin{table}
+	\caption{Modelo Vectorial Cranfield}\label{cran_svm_result}
+ \begin{tabular}{|l|l|l|l|}
+ \hline
+ 	Corte &  Precisión & Recobrado & F1\\
+ \hline
+	30 & 0.002 & 0.010 & 0.003\\
+	50 & 0.003 & 0.025 & 0.005\\
+	100 & 0.004 & 0.07 & 0.007\\
+ \hline
+ \end{tabular}
+\end{table}
+
+
+\begin{table}
+	\caption{Modelo Vectorial Med}\label{med_svm_result}
+ \begin{tabular}{|l|l|l|l|}
+ \hline
+ 	Corte &  Precisión & Recobrado & F1\\
+ \hline
+	30 & 0.07 & 0.05 & 0.053\\
+	50 & 0.06 & 0.06 & 0.059\\
+	100 & 0.05 & 0.11 & 0.071\\
+ \hline
+ \end{tabular}
+\end{table}
+
+\subsection{Observaciones}
+
+Se observa que los resultados no son buenos, tanto la precisión como el recobrado no son buenos. La precisión
+se puede opacar por el caso de que se devuelven todos los documentos, aunque el recobrado es un poco mayor pero
+no tanto como para que aumente la calidad del modelo.
 
 \section{Conclusiones}
 
+Durante la implementación del motor de búsqueda se reflejaron los principales problemas que se
+ven en este tipo de situaciones (la representación de documentos, la representación de consultas, 
+el ranking de los documentos) y las respectivas soluciones que brindan los distintos tipos de modelos,
+en este caso vectorial y RankingSVM. Se pudo constatar que una buena implementación de un sistema de recueración
+de información
+
 %TODO
 Hacer conclusiones
-El modelo Vectorial pese a ser sencillo y obtener buenos resultados de manera sintactica, al probarse con el dataset de cranfield
+El modelo Vectorial pese a ser sencillo y obtener buenos resultados de manera sintáctica, al probarse con el dataset de cranfield
 presento problemas para la recuperación de informacion meramente semantica con respecto a una consulta. Consultas del tipo: "qué","como" 
 y de ese estilo que requieren de una respuesta al significado semantico de la misma consulta.
 La biblioteca de python cuenta con un TfidfVectorizer el cual nos da como resultado una matriz de TF*IDF del corpus de documentos

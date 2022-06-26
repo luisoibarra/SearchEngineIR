@@ -74,7 +74,7 @@ def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
     # Cosine Similarity
     cosine = np.dot(q_vec,d_vec)/(np.linalg.norm(q_vec) * np.linalg.norm(d_vec))
 
-    if not (cosine < 0 and cosine >= 0): # cosine is nan
+    if not (cosine < 0 or cosine >= 0): # cosine is nan
         cosine = 0
 
     q_vec_dec = decompositor.transform([q_vec])[0]

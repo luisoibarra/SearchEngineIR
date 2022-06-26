@@ -47,9 +47,9 @@ Fase de procesamiento que en la cual se hace el entrenamiento del clasificador S
 
 ### Retroalimentación
 
-La retroalimentación está dada explícita por el usuario. Se puede crear el modelo realizando un sembrado automático de las relaciones query-documento del corpus.
+La retroalimentación está dada explícita por el usuario. Se puede crear el modelo realizando un sembrado automático de las relaciones query-documento del corpus las cuales sirven para, dada la consulta, encontrar consultas similares a estas y devolver los documentos relevantes y no relevantes para utilizar en el algoritmo de Rocchio. Se utiliza un valor preestablecido de 0.25 para separar las consultas similares y ademas solo se escogen las 5 primeras consultas con mayor similitud, incluyendo a la misma consulta para poder tomar en cuenta la retroalimentación dada por el usuario.
 
-Se usa el algoritmo de Rocchio.
+El algoritmo de Rocchio utiliza toda la información acerca de los documentos relevantes y los no relevantes para una determinada consulta(y la de consultas similares a esta en nuestro caso) para acercar más a dicha consulta a la zona de los documentos relevantes y alejarla de los documentos no relevantes. Se utilizan los valores usuales de alpha, beta y ro los cuales son 1, 0.75 y 0.1 respectivamente.
 
 ### Expansión de consulta
 

@@ -10,8 +10,8 @@ import time as t
 import ir_datasets as ir
 
 ###### CHANGE CONFIGURATIONS HERE
-corpus_name = "cranfield"
-# corpus_name = "med"
+# corpus_name = "cranfield"
+corpus_name = "med"
 
 seed_feedback = True
 # seed_feedback = False

@@ -1,5 +1,4 @@
-import numpy as np
-
+from .utils import cosine_sim
 from .feedback import add_feedback_manager, add_feedback_to_query
 from .query_expansion import add_query_expansion_manager
 from ..pipes.pipeline import Pipeline
@@ -30,23 +29,14 @@ def rank_documents(context: dict):
     higher will be returned
     """
     
-    def sim(x,y):
-        """
-        Finds the cosine between the x and y vectors 
-        """
-        norm_x = np.linalg.norm(x)
-        norm_y = np.linalg.norm(y)
-        if 0 in [norm_y, norm_x]:
-            return 0
-        return np.dot(x,y)/(norm_x*norm_y)
-
+    
     rank_threshold = context.get("rank_threshold", 0)
     
     query = context["query"]
     documents = context["documents"]
     ranking = []
     for doc in documents:
-        s = sim(query["vector"], doc["vector"])
+        s = cosine_sim(query["vector"], doc["vector"])
         if s > rank_threshold:
             ranking.append((s, doc))
     ranking.sort(key=lambda x: -x[0])
@@ -84,18 +74,19 @@ class VectorialModel(InformationRetrievalModel):
         )
         build_pipeline = Pipeline(
             read_documents_from_hard_drive if not add_document_pipe else add_document_pipe, 
+            add_training_documents,
             add_tokens,
             add_stopwords,
             add_lemmatizer, # Stemmer XOR Lemmatizer 
             # add_stemmer, # Stemmer XOR Lemmatizer
             add_wordnet,
-            add_feedback_manager,
-            add_query_expansion_manager,
             add_vectorizer_vectorial, 
             apply_text_processing, 
             build_matrix, 
             add_idf,
             add_vector_to_doc,
+            add_feedback_manager,
+            add_query_expansion_manager,
         )
         
         query_pipeline = Pipeline(
@@ -110,9 +101,11 @@ class VectorialModel(InformationRetrievalModel):
             "alpha_rocchio": alpha_rocchio,
             "beta_rocchio": beta_rocchio,
             "ro_rocchio": ro_rocchio,
+            "vectorial": self,
         }
         build_context = {
             "language": language,
-            "dataset_name": dataset_name
+            "dataset_name": dataset_name,
+            "vectorial": self,
         }
         super().__init__(corpus_address, query_pipeline, query_to_vec_pipeline, build_pipeline, query_context, build_context)

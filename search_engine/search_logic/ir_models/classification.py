@@ -7,8 +7,8 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pathlib import Path
 
-from .base import InformationRetrievalModel, VecMatrix
-from .utils import get_object, save_object, read_document, read_relevance
+from .base import InformationRetrievalModel, add_training_documents
+from .utils import cosine_sim, get_object, save_object
 
 from .vectorial import VectorialModel
 from ..pipes.pipeline import Pipeline
@@ -72,7 +72,7 @@ def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
     d_vec = doc_i_repr["vector"]
     
     # Cosine Similarity
-    cosine = np.dot(q_vec,d_vec)/(np.linalg.norm(q_vec) * np.linalg.norm(d_vec))
+    cosine = cosine_sim(q_vec, d_vec)
 
     if not (cosine < 0 or cosine >= 0): # cosine is nan
         cosine = 0
@@ -107,66 +107,6 @@ def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
         ), 
     axis=0)
     return feature
-
-def add_training_documents(context: dict):
-    """
-    Adds the training corpus documents and training information.
-    """
-
-    dataset_name = context.get("dataset_name", "cranfield")
-
-    documents = []
-    relevance = set()
-    queries_dict = {}
-    
-    if dataset_name in ["cranfield"]:
-        dataset = ir.load(dataset_name)
-        # Documents
-        for doc in dataset.docs_iter():
-            doc_id, title, text = doc.doc_id, doc.title, doc.text
-            if text:
-                documents.append({
-                    "text": text,
-                    "dir": doc_id,
-                    "topic": title
-                })
-
-        # Queries
-        queries_dict = { q.query_id: q.text for q in dataset.queries_iter() }
-
-        # Relevance
-        for qrel in dataset.qrels_iter():
-            q_id, d_id, rel = qrel.query_id, qrel.doc_id, qrel.relevance
-            relevance.add((q_id, d_id, rel))
-    elif dataset_name in ["med"]:
-
-        # Documents
-        document_path = Path(__file__, "..", "..", "..", "test", f"{dataset_name}_raw", f"{dataset_name.upper()}.ALL").resolve()
-        for doc_id, text in read_document(document_path):
-            documents.append({
-                "text": text,
-                "dir": doc_id,
-                "topic": dataset_name,
-            })
-
-        # Queries
-        query_path = Path(__file__, "..", "..", "..", "test", f"{dataset_name}_raw", f"{dataset_name.upper()}.QRY").resolve()
-        for q_id, text in read_document(query_path):
-            queries_dict[q_id] = text
-
-        # Relevance
-        relevance_path = Path(__file__, "..", "..", "..", "test", f"{dataset_name}_raw", f"{dataset_name.upper()}.REL").resolve()
-        relevance = set(x for x in read_relevance(relevance_path))
-    else:
-        raise Exception(f"Corpus {dataset_name} not supported")
-
-    context["documents"] = documents
-    
-    context["training_documents"] = documents
-    context["training_queries_dict"] = queries_dict
-    context["training_relevance_tuples"] = relevance
-    
-    return context
 
 
 def add_vectorial(context: dict):

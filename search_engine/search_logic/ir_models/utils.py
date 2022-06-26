@@ -3,6 +3,19 @@ import pickle
 from typing import List
 from pathlib import Path
 import re
+import ir_datasets as ir
+import numpy as np
+
+
+def cosine_sim(x, y):
+    """
+    Finds the cosine between the x and y vectors
+    """
+    norm_x = np.linalg.norm(x)
+    norm_y = np.linalg.norm(y)
+    if 0 in [norm_y, norm_x]:
+        return 0
+    return np.dot(x, y)/(norm_x*norm_y)
 
 def get_object(documents: List[str], suffix="vec"):
     """

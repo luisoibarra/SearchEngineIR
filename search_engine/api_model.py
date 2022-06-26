@@ -17,8 +17,8 @@ path = Path(__file__) / ".." / "test" / f"{corpus_name}_corpus"
 CORPUS = path.resolve()
 
 # CHANGE MODEL HERE
-# model = VectorialModel(CORPUS)
-model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name)
+model = VectorialModel(CORPUS)
+# model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name)
 
 model.build()
 

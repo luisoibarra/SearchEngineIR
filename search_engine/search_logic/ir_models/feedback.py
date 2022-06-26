@@ -3,7 +3,7 @@ from .utils import cosine_sim
 
 def add_feedback_manager(context: dict) -> dict:
     """
-    Add the feedback maanger used by the IR model
+    Add the feedback manager used by the IR model
     """
     manager = FeedbackManager()
     context["feedback_manager"] = manager
@@ -76,6 +76,7 @@ class FeedbackManager:
         relevance = context["training_relevance_tuples"]
         transform_query = context["vectorial"].transform_query
         seed_feedback = context.get("seed_feedback", True)
+        self.queries_vec_to_queries={}
 
         if seed_feedback:
             for q,d,r in relevance:
@@ -87,6 +88,7 @@ class FeedbackManager:
                     self.mark_relevant(query, document)
                 else:
                     self.mark_not_relevant(query, document)
+                self.queries_vec_to_queries[tuple(query['vector'])] = query
 
     def _mark_document(self, query: dict, document: dict, relevance_dict: dict):
 
@@ -110,21 +112,21 @@ class FeedbackManager:
         """
         self._mark_document(query, document, self.not_relevant_dict)
 
-    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.1):
+    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.25):
         try:
-            q = tuple(query['vector'])
-            if not q in relevant_dict:
-                relevant_dict[q]=[]
+            q_vec = tuple(query['vector'])
+            if not q_vec in relevant_dict:
+                relevant_dict[q_vec]=[]
 
-            similar_queries = [(cosine_sim(query['vector'], np.array(simquery)), simquery)
+            similar_queries = [(cosine_sim(query['vector'], np.array(simquery)), simquery,self.queries_vec_to_queries.get(simquery,query))
                                for simquery in relevant_dict]
             similar_queries.sort(key=lambda x: -x[0])
             similar_queries = similar_queries[:5]
             similar_queries = [q for q in similar_queries if q[0] > relevant_threshold]
             
             relevants = []
-            for _,q in similar_queries:
-                relevants += [np.array(doc['vector']) for doc in relevant_dict[q]]
+            for rank,q_vec,q in similar_queries:
+                relevants += [np.array(doc['vector']) for doc in relevant_dict[q_vec]]
 
             return relevants
         except KeyError:

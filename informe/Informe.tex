@@ -16,7 +16,7 @@
 
 \begin{document}
 %
-\title{Motor de Búsqueda}
+\title{Motor de Búsqueda: Modelo Vectorial y Ranking SVM}
 %
 %\titlerunning{Abbreviated paper title}
 % If the paper title is too long for the running head, you can set
@@ -40,14 +40,14 @@ Adrian Hernández Pérez\inst{3}}
 % 150--250 words.
 La creación de motores de búsqueda permiten a los usuarios acceder a la información
 que buscan de manera rápida y eficiente. Este trabajo presenta una implementación de 
-un motor de búsqueda basado en el modelo vectorial. Se presentan la arquitectura,
-algoritmos y procesamientos usados para dicha implementación. Se obtuvieron resultados ...
-%TODO PONER RESUMEN DE RESULTADOS
-
+un motor de búsqueda basado en el modelo vectorial y en Ranking SVM. Se presentan la arquitectura,
+algoritmos y procesamientos usados para dicha implementación. Se trabajó sobre un conjunto de datos
+de tipo científico obteniendo resultados superiores en el modelo vectorial y se evidencia el efecto
+del algoritmo de Rocchio para el mejoramiento de las métricas en la retroalimentación del motor de búsqueda.
 El resultado final es presentado al usuario mediante una interfaz gráfica que permite
 al usuario realizar consultas de manera natural.
 
-\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial. \and SVM}
+\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial. \and Support Vector Machine}
 \end{abstract}
 
 \section{Introducción}
@@ -55,12 +55,12 @@ al usuario realizar consultas de manera natural.
 El ámbito de recuperación de información es un área de las Ciencias de la Computación que tiene
 actualmente gran importancia debido al gran volumen de información que se genera cada día en la
 web. Esta información debe de ser encontrada por los usuarios de manera rápida y eficiente y es
-de esta tarea en la cual un motor de búsqueda es necesario. La tarea escencial de un motor de
+de esta tarea en la cual un motor de búsqueda es necesario. La tarea esencial de un motor de
 búsqueda es la de recuperar documentos que estén asociados a una pregunta planteada por el usuario, 
 esta recuperación tiene que ser de calidad conteniendo información relevante que el usuario pueda
 usar para lograr su objetivo.
 
-En este ámbito se presentan escencialmente tres tipos de modelos de recuperación de los
+En este ámbito se presentan tres tipos de modelos clásicos de recuperación de los
 cuales surgen nuevas variantes, los tipos son:
 
 \begin{itemize}
@@ -74,10 +74,10 @@ en este caso se usa el modelo vectorial y el modelo de Ranking SVM. Además es n
 construcción de una interfaz visual para la interacción con el usuario, en este caso se usó
 streamlit y Flutter para la construcción de páginas web con esta finalidad.
 
-El trabajo de divide en varias secciones, primero se analizará la arquitectura del motor de
-búsqueda, luego se presentará el algoritmo y procesamiento usado para la implementación de 
-este, luego se presentará el resultado final del motor de búsqueda. También se presentará una
-sección sobre la implementación de la interfaz gráfica. 
+El trabajo de divide en varias secciones, primero se analiza la arquitectura del motor de
+búsqueda, se presenta el algoritmo y procesamiento usado para la implementación de 
+este, presentará una sección sobre la implementación de la interfaz gráfica, por último
+se presenta el resultado final del motor de búsqueda.
 
 \section{Arquitectura}
 
@@ -92,17 +92,17 @@ Todo motor de búsqueda consta de tres partes fundamentales a la hora de darle r
 \subsection{Flujo de datos del motor de búsqueda}
 
 El motor de búsqueda es el núcleo fundamental de la implementación. Un problema fundamental que
-tiene la etapa de desarrolo es que en esta se realizan muchos cambios en el código fuente agregando
+tiene la etapa de desarrollo es que en esta se realizan muchos cambios en el código fuente agregando
 o cambiando funcionalidades al procesamiento, además estas funcionalidades generalmente se pueden usar
 de manera independiente para otros procesamientos como por ejemplo la implementación de otro modelo
 dentro del mismo motor de búsqueda. Para poder resolver este problema de una manera sencilla se estructura
-el proyecto mediante una arquitectura de tuberías (pipelines). Esta arquitectura consiste en una serie
+el proyecto mediante una arquitectura de tuberías o flujos (pipelines). Esta arquitectura consiste en una serie
 de tuberías que se conectan entre sí, pasando un contexto entre ellas y combinando de forma desacoplada
 los resultados obtenidos de cada tubería. Un ejemplo de lo anterior es que la lectura de los documentos
 es independiente de su procesamiento así que si se quiere cambiar esta funcionalidad es solamente necesario
-cambiar el pedazo del pipeline encargado de esto, otro ejemplo de las ventajas es que el proceso de
+cambiar el pedazo del flujo encargado de esto, otro ejemplo de las ventajas es que el proceso de
 tokenización de los documentos generalmente es el mismo, en el caso de que se quieran implementar varios
-modelos se puede reutilizar este pipeline sin mucho esfuerzo y manteniendo la misma arquitectura \ref{pipeline_fig}.
+modelos se puede reutilizar este flujo sin mucho esfuerzo y manteniendo la misma arquitectura Figura \ref{pipeline_fig}.
 
 \subsection{Comunicación con el motor de búsqueda}
 
@@ -115,10 +115,10 @@ Los principales endpoints de esta interfaz son:
 
 \begin{itemize}
     \item GET \url{search/?query=query\&offset=offset} Devuelve una lista asociada a los
-documentos relevanes de la búsqueda.
+documentos relevantes de la búsqueda.
     \item GET \url{document/?document\_dir=document\_dir} Devuelve el contenido del documento asociado
 al id dado.
-	\item GET \url{expand/?query=query} Devuelve las posibles expansiones de query encontradas por el programa
+	\item GET \url{expand/?query=query} Devuelve las posibles expansiones de consulta encontradas por el programa
 	\item POST \url{feedback/} Envía la información para marcar como relevante o no los documentos mostrados.
 \end{itemize}
 
@@ -146,7 +146,7 @@ Este procesamiento puede ser el mismo independientemente del tipo de modelo util
 
 \subsection{Modelo Vectorial}
 
-El modelo vectorial se centra en la idea de que la relevancia de los documentos con la query está 
+El modelo vectorial se centra en la idea de que la relevancia de los documentos con la consulta está 
 dada por las palabras que contienen. Para esto se encuentran representaciones vectoriales de ambos
 para que se pueda hacer la comparación. En el modelo planteado en el trabajo se hace una implementación
 del modelo clásico vectorial el cual no toma en cuenta el orden de las palabras en su representación, haciendo
@@ -177,7 +177,8 @@ documentos, pero con una diferencia que se aplica una fórmula diferente.
 \end{equation}
 
 En este caso $\alpha$ es un hiperparámetro para suavizar cuyo rol es disminuir
-la contribución del segundo término \cite{alphaManning}.
+la contribución del segundo término \cite{alphaManning}. En la práctica dicho parámetro
+se especificó a 0 luego de probar varios valores.
 
 \subsubsection{Ranking de documentos}
 
@@ -199,8 +200,7 @@ en los cuales se guarda información acerca de sus características e interaccio
 el problema resuelto por SVM es uno de clasificación, por lo que se tendría que convertir
 el problema de Ranking a uno de clasificación. Para esto se considera la siguiente idea, se
 entrenará el modelo SVM para detectar si un documento es más relevante a otro con la misma query.
-Para la implementación de dicho algoritmo se usó la implementación de SVM de sklearn, probando con
-distintos tipos y parámetros.
+Para la implementación de dicho algoritmo se usó los SVM de sklearn.
 
 \subsubsection{Representación de Documentos y Consultas}
 
@@ -210,9 +210,11 @@ de información aunque en el trabajo se representa por la concatenación de los 
 
 \begin{itemize}
 	\item Coseno entre la representación vectorial TF-IDF de la consulta y el documento
+	\item Distancia euclidiana entre la representación vectorial TF-IDF de la consulta y el documento
 	\item Cantidad de palabras que aparecen en la consulta y el documento
-	\item Representación reducida del vector TF-IDF de la consulta mediante descomposición SVD
-	\item Representación reducida del vector TF-IDF del documento mediante descomposición SVD
+	\item Similitud de Jacard entre los tokens de la consulta y del documento
+	\item Coseno entre el vector TF-IDF reducido de la consulta y del documento mediente descomposición SVD
+	\item Distancia euclidiana entre el vector TF-IDF reducido de la consulta y del documento mediente descomposición SVD
 \end{itemize}
 
 La descomposición de SVD se basa en el proceso de Latent Semantic Analysis (LSA) cuyo objetivo 
@@ -220,17 +222,19 @@ consiste en reducir la dimensionalidad de los términos aplicándole la descompo
 matriz de TF-IDF generada en orden de obtener una representación más compacta y que guarde 
 información semántica de los términos \cite{lsaWiki}.
 
-La representación final es un vector de tamaño 202, ya que se hace la reducción del vector documento y consulta
-a tamaño 100.
+Se intentó usar directamente el vector LSA de la consulta y del documento como feature en el entrenamiento,
+el resultado fue que los pesos asociados a la consulta quedaban nulos, por lo tanto esta no influía en el
+resultado así que esta idea quedó descartada.
 
 \subsubsection{Ranking de los documentos}
 
 Para la conversión del problema de ranking a uno de clasificación se parte de la siguiente
 hipótesis en el espacio del trabajo con SVMs:
 
-$$
+
+\begin{equation}
 w\theta_{iq} > w\theta_{jq} \iff r_q(d_i) > r_q(d_j)
-$$
+\end{equation}
 
 Donde:
 
@@ -244,9 +248,9 @@ Donde:
 
 Partiendo de lo anterior se tiene que:
 
-$$
+\begin{equation}
 w(\theta_{iq} - \theta_{jq}) > 0 \iff r_q(d_i) - r_q(d_j) > 0
-$$
+\end{equation}
 
 Lo que en términos de SVM equivale a encontrar el hiperplano que maximiza la distancia entre las distintas clases
 del vector diferencia visto anteriormente.
@@ -257,14 +261,21 @@ consultas sean relevantes o no, encontrando un separador que maximiza el margen 
 Para el orden de los documentos dado una consulta se propone el siguiente criterio, en donde los documentos son
 ordenados de mayor a menor por el valor del resultado \cite{rankSVM}:
 
-$$
+\begin{equation}
 rsv(q, d_i) = w^* \theta_{iq}
-$$
+\end{equation}
 
-\subsubsection{SVM}
+\subsubsection{Elección del kernel SVM}
 
 En la elección del tipo de SVM a utilizar se probaron diferentes kernels, el linear, polinomial y RBF, con estos
-se obtuvieron resultados similares, logrando una precisión en el entrenamiento de 
+se obtuvieron resultados similares, dado que el linear es más simple y rápido y los otros no aportaban un aumento
+significativo se decidió dejar este \cite{svmSklearn}.
+
+\subsubsection{Entrenamiento}
+
+Para el entrenamiento final obtuvo una precisión del 57\% por lo que nos indica que la separación no es buena con
+los atributos propuestos. Puede ser que al encontrar un conjunto de atributos que separe correctamente los documentos
+se logre mejorar el rendimiento del modelo.
 
 \subsection{Retroalimentación}
 
@@ -285,8 +296,15 @@ relevantes que estén en una zona cercana y no exacta aumentando así el recuper
 
 \subsection{Expansión de query}
 
-%TODO Implementar
-Para implementar la expasión de query se hizo un algoritmo de correlación de términos,donde se analiza la ultima palabra de la query,y , si está en algún documento, entonces se hace un ranking de las palabras que más se usan después de esa palabra en los documentos. Para hacer esto se hizo una matriz para la correlación de los términos, de dimensión NxN donde N es la cantidad de palabras diferentes en el corpus, donde el valor en $[x,y]$ representa la cantidad de veces que depués de la palabra $x$ está la palabra $y$, se utilizó una matriz esparcida, que es una estructura muy útil para esto, ya que los valores que son 0 en la matriz, o sea los valores que no se han modificado no se guardan en memoria, y esta matriz cumple la característica de que la mayoría de sus valores son cero, y esto representa eficiencia y un gran ahorro de memoria.Entoces de ahí se saca un ranking de las posibles palabras para la expansión de la query.
+Para implementar la expansión de query se hizo un algoritmo de correlación de términos, donde se analiza la última palabra de la 
+query, y si está en algún documento, entonces se hace un ranking de las palabras que más se usan después de esa palabra en los
+documentos. Para hacer esto se hizo una matriz para la correlación de los términos, de dimensión NxN donde N es la cantidad de 
+palabras diferentes en el corpus, donde el valor en $[x,y]$ representa la cantidad de veces que después de la palabra $x$ está 
+la palabra $y$, se utilizó una matriz esparcida, que es una estructura muy útil para esto, ya que los valores que son 0 en la 
+matriz, o sea los valores que no se han modificado no se guardan en memoria, y esta matriz cumple la característica de que la 
+mayoría de sus valores son cero, y esto representa eficiencia y un gran ahorro de memoria. Con la matriz de correlación se saca 
+el ranking de palabras ordenando la fila asociada a $x$ por sus valores de mayor a menor y devolviendo los términos asociados a 
+los primeros elementos del ordenamiento.
 
 \section{Interfaz gráfica}
 
@@ -334,7 +352,31 @@ relaciones todas positivas.
 
 Las métricas usadas para evaluar los modelos son precisión, recobrado y F1. Debido a que el diseño del
 motor de búsqueda devuelve todos los documentos, se utilizaron diferentes niveles de corte en la evaluación
-de estos. Las métricas fueron calculadas para cada consulta en el corpus y se les halló la media.
+de estos. Las métricas fueron calculadas para cada consulta en el corpus y se les halló la media. Tener en cuenta
+que la cantidad de documentos relevantes a la consulta puede ser menor que el corte expresado afectando así el
+promedio de precisión.
+
+\begin{equation}
+Pr_c = \frac{1}{c} \sum_{i=1}^{|Q|} \frac{|RR_i|}{c}
+\end{equation}
+
+\begin{equation}
+Re_c = \frac{1}{c} \sum_{i=1}^{|Q|} \frac{|RR_i|}{|R_i|}
+\end{equation}
+
+Donde:
+
+\begin{itemize}
+
+	\item $Pr_c$: Media de la precisión hasta el corte $c$
+	\item $Re_c$: Media del recobrado hasta el corte $c$
+	\item $Q$: Conjunto de consultas en el corpus
+	\item $RR_i$: Conjunto de documentos relevantes a la consulta $i$ recuperados
+	\item $R_i$: Conjunto de documentos relevantes a la consulta $i$
+
+\end{itemize}
+
+\newpage
 
 \subsection{Modelo Vectorial}
 
@@ -344,9 +386,23 @@ de estos. Las métricas fueron calculadas para cada consulta en el corpus y se l
  \hline
  	Corte &  Precisión & Recobrado & F1\\
  \hline
-	30 & 0.003 & 0.014 & 0.005\\
-	50 & 0.004 & 0.024 & 0.007\\
-	100 & 0.004 & 0.052 & 0.008\\
+	30 & 0.011 & 0.03 & 0.015\\
+	50 & 0.009 & 0.043 & 0.014\\
+	100 & 0.008 & 0.084 & 0.014\\
+ \hline
+ \end{tabular}
+\end{table}
+
+
+\begin{table}
+	\caption{Modelo Vectorial Cranfield Feedback}\label{cran_vec_feed_result}
+ \begin{tabular}{|l|l|l|l|}
+ \hline
+ 	Corte &  Precisión & Recobrado & F1\\
+ \hline
+	30 & 0.13 & 0.74 & 0.21\\
+	50 & 0.096 & 0.82 & 0.16\\
+	100 & 0.058 & 0.91 & 0.10\\
  \hline
  \end{tabular}
 \end{table}
@@ -358,152 +414,84 @@ de estos. Las métricas fueron calculadas para cada consulta en el corpus y se l
  \hline
  	Corte &  Precisión & Recobrado & F1\\
  \hline
-	30 & 0.04 & 0.03 & 0.036\\
-	50 & 0.05 & 0.05 & 0.048\\
-	100 & 0.05 & 0.11 & 0.066\\
+	30 & 0.45 & 0.31 & 0.35\\
+	50 & 0.34 & 0.37 & 0.34\\
+	100 & 0.22 & 0.45 & 0.28\\
  \hline
  \end{tabular}
 \end{table}
+
+
+\begin{table}
+	\caption{Modelo Vectorial Med Feedback}\label{med_vec_feed_result}
+ \begin{tabular}{|l|l|l|l|}
+ \hline
+ 	Corte &  Precisión & Recobrado & F1\\
+ \hline
+	30 & 0.59 & 0.40 & 0.46\\
+	50 & 0.42 & 0.46 & 0.43\\
+	100 & 0.24 & 0.52 & 0.32\\
+ \hline
+ \end{tabular}
+\end{table}
+
+\newpage
 
 \subsection{Modelo Ranking SVM}
 
 
 \begin{table}
-	\caption{Modelo Vectorial Cranfield}\label{cran_svm_result}
+	\caption{Ranking SVM Cranfield}\label{cran_svm_result}
  \begin{tabular}{|l|l|l|l|}
  \hline
  	Corte &  Precisión & Recobrado & F1\\
  \hline
-	30 & 0.002 & 0.010 & 0.003\\
-	50 & 0.003 & 0.025 & 0.005\\
-	100 & 0.004 & 0.07 & 0.007\\
+	30 & 0.008 & 0.042 & 0.012\\
+	50 & 0.006 & 0.056 & 0.011\\
+	100 & 0.006 & 0.096 & 0.011\\
  \hline
  \end{tabular}
 \end{table}
 
 
 \begin{table}
-	\caption{Modelo Vectorial Med}\label{med_svm_result}
+	\caption{Ranking SVM Med}\label{med_svm_result}
  \begin{tabular}{|l|l|l|l|}
  \hline
  	Corte &  Precisión & Recobrado & F1\\
  \hline
-	30 & 0.07 & 0.05 & 0.053\\
-	50 & 0.06 & 0.06 & 0.059\\
-	100 & 0.05 & 0.11 & 0.071\\
+	30 & 0.18 & 0.11 & 0.14\\
+	50 & 0.15 & 0.15 & 0.15\\
+	100 & 0.10 & 0.22 & 0.13\\
  \hline
  \end{tabular}
 \end{table}
 
 \subsection{Observaciones}
 
-Se observa que los resultados no son buenos, tanto la precisión como el recobrado no son buenos. La precisión
-se puede opacar por el caso de que se devuelven todos los documentos, aunque el recobrado es un poco mayor pero
-no tanto como para que aumente la calidad del modelo.
+Se observa que el modelo vectorial supera la modelo de Ranking SVM, aunque esto se puede deber a 
+la pobre separación lograda en el entrenamiento de dicho modelo. Algo interesante a notar es el gran 
+impacto que tiene añadirle la retroalimentación al modelo vectorial, sobre todo en el corpus Cranfield, 
+donde sus métricas F1 aumentan aproximadamente 10 veces.
+
+Las métricas del modelo Ranking SVM son malas con en general y con respecto al vectorial. Al añadir la retroalimentación
+a la representación de los vectores no se vio un aumento en las métricas como lo tuvo el modelo vectorial (se observó un
+ligero descenso), esto se puede deber a que el cambio de representación de los documentos en ambos modelos.
 
 \section{Conclusiones}
 
 Durante la implementación del motor de búsqueda se reflejaron los principales problemas que se
 ven en este tipo de situaciones (la representación de documentos, la representación de consultas, 
 el ranking de los documentos) y las respectivas soluciones que brindan los distintos tipos de modelos,
-en este caso vectorial y RankingSVM. Se pudo constatar que una buena implementación de un sistema de recueración
-de información
+en este caso vectorial y Ranking SVM. Los resultados obtenidos muestran una superioridad del modelo
+vectorial en ambos corpus, que se supone que se debe a la poca capacidad del modelo SVM de encontrar
+un buen límite de separación con los atributos propuestos. 
 
-%TODO
-Hacer conclusiones
-El modelo Vectorial pese a ser sencillo y obtener buenos resultados de manera sintáctica, al probarse con el dataset de cranfield
-presento problemas para la recuperación de informacion meramente semantica con respecto a una consulta. Consultas del tipo: "qué","como" 
-y de ese estilo que requieren de una respuesta al significado semantico de la misma consulta.
-La biblioteca de python cuenta con un TfidfVectorizer el cual nos da como resultado una matriz de TF*IDF del corpus de documentos
-entregados como argumento a su metodo fit\_transform.
-La consulta es pasada como argumento al metodo transform del mismo vectorizer ya ajustado al corpus de documentos, lo cual devuelve un
- vector normalizado de tf*idf de dicha consulta. Por tanto en el metodo smooth\_query donde deberia haber una multiplicacion de tf*idf 
- solo se encuentra query["vector"]. 
+\newpage
 
-
-% \section{First Section}
-% \subsection{A Subsection Sample}
-% Please note that the first paragraph of a section or subsection is
-% not indented. The first paragraph that follows a table, figure,
-% equation etc. does not need an indent, either.
-
-% Subsequent paragraphs, however, are indented.
-
-% \subsubsection{Sample Heading (Third Level)} Only two levels of
-% headings should be numbered. Lower level headings remain unnumbered;
-% they are formatted as run-in headings.
-
-% \paragraph{Sample Heading (Fourth Level)}
-% The contribution should contain no more than four levels of
-% headings. Table~\ref{tab1} gives a summary of all heading levels.
-
-% \begin{table}
-% \caption{Table captions should be placed above the
-% tables.}\label{tab1}
-% \begin{tabular}{|l|l|l|}
-% \hline
-% Heading level &  Example & Font size and style\\
-% \hline
-% Title (centered) &  {\Large\bfseries Lecture Notes} & 14 point, bold\\
-% 1st-level heading &  {\large\bfseries 1 Introduction} & 12 point, bold\\
-% 2nd-level heading & {\bfseries 2.1 Printing Area} & 10 point, bold\\
-% 3rd-level heading & {\bfseries Run-in Heading in Bold.} Text follows & 10 point, bold\\
-% 4th-level heading & {\itshape Lowest Level Heading.} Text follows & 10 point, italic\\
-% \hline
-% \end{tabular}
-% \end{table}
-
-
-% \noindent Displayed equations are centered and set on a separate
-% line.
-% \begin{equation}
-% x + y = z
-% \end{equation}
-% Please try to avoid rasterized images for line-art diagrams and
-% schemas. Whenever possible, use vector graphics instead (see
-% Fig.~\ref{fig1}).
-
-% \begin{figure}
-% % \includegraphics[width=\textwidth]{fig1.eps}
-% \caption{A figure caption is always placed below the illustration.
-% Please note that short captions are centered, while long ones are
-% justified by the macro package automatically.} \label{fig1}
-% \end{figure}
-
-% \begin{theorem}
-% This is a sample theorem. The run-in heading is set in bold, while
-% the following text appears in italics. Definitions, lemmas,
-% propositions, and corollaries are styled the same way.
-% \end{theorem}
-% %
-% % the environments 'definition', 'lemma', 'proposition', 'corollary',
-% % 'remark', and 'example' are defined in the LLNCS documentclass as well.
-% %
-% \begin{proof}
-% Proofs, examples, and remarks have the initial word in italics,
-% while the following text appears in normal font.
-% \end{proof}
-% For citations of references, we prefer the use of square brackets
-% and consecutive numbers. Citations using labels or the author/year
-% convention are also acceptable. The following bibliography provides
-% a sample reference list with entries for journal
-% articles~\cite{ref_article1}, an LNCS chapter~\cite{ref_lncs1}, a
-% book~\cite{ref_book1}, proceedings without editors~\cite{ref_proc1},
-% and a homepage~\cite{ref_url1}. Multiple citations are grouped
-% \cite{ref_article1,ref_lncs1,ref_book1},
-% \cite{ref_article1,ref_book1,ref_proc1,ref_url1}.
-%
 % ---- Bibliography ----
-%
-% BibTeX users should specify bibliography style 'splncs04'.
-% References will then be sorted and formatted in the correct style.
-%
-% \bibliographystyle{splncs04}
-% \bibliography{mybibliography}
-%
 \section{Anexos}
 
-%TODO Poner ejemplo de como se puede reutilizar un pipeline para realizar otros pipelines
 \begin{figure}
 \includegraphics[width=\textwidth]{pipeline.jpg}
 \caption{Ejemplo de pipelines} \label{pipeline_fig}
@@ -518,23 +506,10 @@ La consulta es pasada como argumento al metodo transform del mismo vectorizer ya
     \includegraphics[width=\textwidth]{ui_streamlit.png}
     \caption{Interfaz visual streamlit} \label{ui_streamlit_fig}
 \end{figure}
+
+\newpage
         
 \begin{thebibliography}{8}
-% \bibitem{ref_article1}
-% Author, F.: Article title. Journal \textbf{2}(5), 99--110 (2016)
-
-% \bibitem{ref_lncs1}
-% Author, F., Author, S.: Title of a proceedings paper. In: Editor,
-% F., Editor, S. (eds.) CONFERENCE 2016, LNCS, vol. 9999, pp. 1--13.
-% Springer, Heidelberg (2016). \doi{10.10007/1234567890}
-
-% \bibitem{ref_book1}
-% Author, F., Author, S., Author, T.: Book title. 2nd edn. Publisher,
-% Location (1999)
-
-% \bibitem{ref_proc1}
-% Author, A.-B.: Contribution title. In: 9th International Proceedings
-% on Proceedings, pp. 1--2. Publisher, Location (2010)
 
 \bibitem{alphaManning}
 Christopher D. Manning, Prabhakar Raghavan, and Hinrich Schütze:
@@ -548,5 +523,9 @@ Wikipedia, \url{https://en.wikipedia.org/wiki/Latent\_semantic\_analysis}. Consu
 Joachims: Optimizing Search Engines Using Clickthrough Data. In: Proceedings of the ACM Conference 
 on Knowledge Discovery and Data Mining (KDD). ACM (2002)
 
+\bibitem{svmSklearn}
+Scikit Learn SVM Documentation, \url{https://scikit-learn.org/stable/modules/svm.html}. Consultado 25 de junio de 2022
+
 \end{thebibliography}
+
 \end{document}

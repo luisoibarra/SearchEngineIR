@@ -75,7 +75,7 @@ class FeedbackManager:
         documents_vectors = context["documents"]
         relevance = context["training_relevance_tuples"]
         transform_query = context["vectorial"].transform_query
-        seed_feedback = context.get("seed_feedback", False)
+        seed_feedback = context.get("seed_feedback", True)
 
         if seed_feedback:
             for q,d,r in relevance:
@@ -93,7 +93,8 @@ class FeedbackManager:
         # Adds the document in a set with all relevant or not relevant documents of the query
         query = tuple(query['vector'])
         if query in relevance_dict:
-            relevance_dict[query].append(document)
+            if not document in relevance_dict[query]:
+                relevance_dict[query].append(document)
         else:
             relevance_dict[query] = [document]
 
@@ -109,8 +110,12 @@ class FeedbackManager:
         """
         self._mark_document(query, document, self.not_relevant_dict)
 
-    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.6):
+    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.1):
         try:
+            q = tuple(query['vector'])
+            if not q in relevant_dict:
+                relevant_dict[q]=[]
+
             similar_queries = [(cosine_sim(query['vector'], np.array(simquery)), simquery)
                                for simquery in relevant_dict]
             similar_queries.sort(key=lambda x: -x[0])

@@ -407,7 +407,7 @@ def classifier_query(context: dict):
 class ClassificationSVMModel(InformationRetrievalModel):
     
     def __init__(self, corpus_address: str, use_rank_svm=True, dataset_name: str="cranfield", language: str = "english",
-                 seed_feedback=False, **kwargs) -> None:
+                 seed_feedback=True, **kwargs) -> None:
 
         query_pipeline = Pipeline(
             classifier_query,

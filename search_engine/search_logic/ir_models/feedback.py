@@ -80,32 +80,23 @@ class FeedbackManager:
             document = [document for document in documents_vectors if document["dir"] == d][0]
             query = queries_dict[q]
             query = transform_query(query,context)
-            key = tuple(query['vector'])
 
-            if r>0:
-                if key in self.relevant_dict:
-                    self.relevant_dict[key].append(document)
-                else:
-                    self.relevant_dict[key] = [query,document]
+            if r > 0:
+                self.mark_relevant(query, document)
             else:
-                
-                if key in self.not_relevant_dict:
-                    self.not_relevant_dict[key].append(document)
-                else:
-                    self.not_relevant_dict[key] = [query,document]
+                self.mark_not_relevant(query, document)
 
 
         return
 
-    def _mark_document(self, query: dict, document: dict, relevant_dict: dict):
+    def _mark_document(self, query: dict, document: dict, relevance_dict: dict):
 
         # Adds the document in a set with all relevant or not relevant documents of the query
         query = tuple(query['vector'])
-        document = tuple(document['vector'])
-        if query in relevant_dict:
-            relevant_dict[query].append(document)
+        if query in relevance_dict:
+            relevance_dict[query].append(document)
         else:
-            relevant_dict[query] = [document]
+            relevance_dict[query] = [document]
 
     def mark_relevant(self, query: dict, document: dict):
         """
@@ -119,13 +110,13 @@ class FeedbackManager:
         """
         self._mark_document(query, document, self.not_relevant_dict)
 
-    def _get_relevants(self, query: dict, relevant_dict: dict):
+    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.6):
         try:
             similar_queries = [(cosine_sim(query['vector'], np.array(simquery)), simquery)
                                for simquery in relevant_dict]
             similar_queries.sort(key=lambda x: -x[0])
             similar_queries = similar_queries[:5]
-            similar_queries = [q for q in similar_queries if q[0] > 0]
+            similar_queries = [q for q in similar_queries if q[0] > relevant_threshold]
             
             relevants = []
             for _,q in similar_queries:

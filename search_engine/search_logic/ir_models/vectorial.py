@@ -89,13 +89,15 @@ class VectorialModel(InformationRetrievalModel):
             add_lemmatizer, # Stemmer XOR Lemmatizer 
             # add_stemmer, # Stemmer XOR Lemmatizer
             add_wordnet,
-            add_feedback_manager,
-            add_query_expansion_manager,
+            # add_feedback_manager, # Cambios Dalmau
+            # add_query_expansion_manager, # Cambios Dalmau
             add_vectorizer_vectorial, 
             apply_text_processing, 
             build_matrix, 
             add_idf,
             add_vector_to_doc,
+            add_feedback_manager,# Cambios Dalmau
+            add_query_expansion_manager,# Cambios Dalmau
         )
         
         query_pipeline = Pipeline(

@@ -70,6 +70,30 @@ class FeedbackManager:
         """
         Initialize the manager
         """
+        queries_dict = context["training_queries_dict"]
+        documents_vectors = context["documents"]
+        relevance = context["training_relevance_tuples"]
+        transform_query = context["vectorial"].transform_query
+
+        for q,d,r in relevance:
+            document = [document for document in documents_vectors if document["dir"] == d][0]
+            query = queries_dict[q]
+            query = transform_query(query,context)
+            key = tuple(query['vector'])
+
+            if r>0:
+                if key in self.relevant_dict:
+                    self.relevant_dict[key].append(document)
+                else:
+                    self.relevant_dict[key] = [query,document]
+            else:
+                
+                if key in self.not_relevant_dict:
+                    self.not_relevant_dict[key].append(document)
+                else:
+                    self.not_relevant_dict[key] = [query,document]
+
+
         return
 
     def _mark_document(self, query: dict, document: dict, relevant_dict: dict):
@@ -78,9 +102,9 @@ class FeedbackManager:
         query = tuple(query['vector'])
         document = tuple(document['vector'])
         if query in relevant_dict:
-            relevant_dict[query].update([document])
+            relevant_dict[query].append(document)
         else:
-            relevant_dict[query] = set([document])
+            relevant_dict[query] = [document]
 
     def mark_relevant(self, query: dict, document: dict):
         """
@@ -96,7 +120,7 @@ class FeedbackManager:
 
     def _get_relevants(self, query: dict, relevant_dict: dict):
         try:
-            return [np.array(x) for x in relevant_dict[tuple(query['vector'])]]
+            return [np.array(doc['vector']) for doc in relevant_dict[tuple(query['vector'])]]
         except KeyError:
             return []
 

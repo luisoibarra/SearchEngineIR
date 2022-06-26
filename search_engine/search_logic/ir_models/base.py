@@ -259,7 +259,9 @@ class InformationRetrievalModel:
         """
         self.corpus_address = corpus_address
         self.query_context = query_context
+        self.query_context["vectorial"] = self # Cambios Dalmau
         self.build_context = build_context
+        self.build_context["vectorial"] = self # Cambios Dalmau
         self.query_pipeline = query_pipeline
         self.query_to_vec_pipeline = query_to_vec_pipeline
         self.build_pipeline = build_pipeline
@@ -284,6 +286,23 @@ class InformationRetrievalModel:
         result = pipeline(query)
         self.last_resolved_query_context = result
         return result["ranked_documents"]
+    
+    def transform_query(self, query: str,context:dict) -> dict:
+        """
+        Transform query to a dict of the query values, tokens, text, vector, etc
+        """
+        pipeline = Pipeline(
+            Pipe(
+                lambda x: {
+                    "corpus_address": x,
+                    "query": {"text": query},
+                    **self.query_context, **context
+                }),
+            self.query_to_vec_pipeline,
+        )
+        result = pipeline(query)
+        self.last_resolved_query_context = result
+        return result['query']
     
     def build(self) -> dict:
         """

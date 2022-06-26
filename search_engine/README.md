@@ -45,11 +45,24 @@ Fase de procesamiento que en la cual se hace el entrenamiento del clasificador S
 - Entrenamiento del clasificador SVM
 - Cálculo de ranking de documentos dado una query
 
+### Retroalimentación
+
+La retroalimentación está dada explícita por el usuario. Se puede crear el modelo realizando un sembrado automático de las relaciones query-documento del corpus.
+
+Se usa el algoritmo de Rocchio.
+
+### Expansión de consulta
+
+La expansión de consulta se hace mediante la construcción de una matriz de correlación de bigramas en el corpus, observando la última palabra de la consulta y devolviendo un rankking de las que más se repiten.
+
 ## API
 
 Expone una API a la cual se le pueden hacer las siguientes conusltas:
 
 - *query/?query=QUERY*: Devuelve una lista ordenada por similitud con la query. Vea el modelo **QueryResult**
+- *document/?document\_dir=DOCUMENTDIR*: Devuelve el contenido del documento
+- *expand/?query=QUERY*: Devuelve una lista de las posibles expansiones de query a realizar. 
+- *feedback/*: Marca como relevantes o no relevantes a la query los documentos. Vea el modelo **FeedbackModel**
 
 ## Visual
 
@@ -61,17 +74,21 @@ Correr `pytest` en la consola
 
 ## Evaluación
 
-Para evaluar el modelo se creó el script eval_model.py, con el cual se prueba el F1, Precisión y Recobrado de los modelos creados.
+Para evaluar el modelo se creó el script `eval_model.py`, con el cual se prueba el F1, Precisión y Recobrado de los modelos creados.
+
+El script es modificable para que use las estadísticas de previas corridas. Ver comentarios en script.
+
+## Cómo expandir el proyecto?
+
+Para expandir el proyecto para agregarle diferentes features se debe realizar usando la misma asquitectura de Pipelines. El proyecto posee clases que simplifican el montaje de nuevos modelos.
+
+- InformationRetreivalModel: Clase base que debe implementar los modelos de recuperación nuevos.
+- FeedbackManager: Clase base para la implementación de algoritmos de feedback
+- QueryExpansionManager: Clase base para la implementación de algoritmos de expansión de consultas
+
+Se puede formar un nuevo modelo realizando los pipes adecuados e inyectándole al contexto implementaciones de las clases anteriores, por ejemplo.
 
 ## Consideraciones
 
 - Se puede hacer los modelos Booleano y Probabilístico sobre la misma infraestructura e incluso combinarlos.
-- Aún hace falta trabajar en el corpus
-
-Query expansion
-- Expansion de bigrama? Entrenar cual es la palabra en el texto que mas sale luego de otra, o ordenarla por frecuencia para coger una lista. Enfoque global, enfoque local
-- Clustering? Dada una query, buscar documentos cercanos a esta y extraer de estos palabras. Se podria hacer tambien algo como un algoritmo que busque cual palabra podria acercar mas la query a diferentes docuemntos.
-- Encoder-decoder? Dada la representacion de una query se calcula en el espacio de documentos los K documentos mas cercanos, luego se coge el centroide de esto y se mueve la query con el, una vez se tenga esa nueva representacion de la query se puede hacer un decoder de esta para hacer la expansion
-
-Feedback
-- 
+- Los corpus deben estar en los formatos dados en test (Cranfield y Med).

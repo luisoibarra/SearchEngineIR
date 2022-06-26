@@ -25,24 +25,26 @@ def get_qrels_dataframe(qrels_iterator, raw_tuple=False):
         df = pd.DataFrame(((qrel.query_id, qrel.doc_id, qrel.relevance) for qrel in qrels_iterator) ,columns=["query_id", "doc_id", "relevance"])
     return df
 
-def get_pickled_stats() -> pd.DataFrame:
+def get_pickled_stats(model, corpus, tag) -> pd.DataFrame:
     """
     Read pickled stats.df 
     """
-    stats_path = (BASE_PATH / "stats.df").resolve()
+    base_path = BASE_PATH / f"{corpus}_corpus"
+    stats_path = (base_path / ".." / f"{tag}{model}_{corpus}_corpus.df").resolve()
+    
     stats = pd.read_pickle(str(stats_path))
     return stats
 
-def eval_model(model_name: str, corpus_name: str, model: InformationRetrievalModel, use_pickled_stats=False):
+def eval_model(model_name: str, corpus_name: str, model: InformationRetrievalModel, tag="", use_pickled_stats=False):
     """
     Simple test to Cranfield to see basic metrics.
     """
     base_path = BASE_PATH / f"{corpus_name}_corpus"
     relevance_threshold = 0
-    stats_path = (base_path / ".." / f"{model_name}_{corpus_name}_corpus.df").resolve()
+    stats_path = (base_path / ".." / f"{tag}{model_name}_{corpus_name}_corpus.df").resolve()
     
     if use_pickled_stats and stats_path.exists():
-        stats = get_pickled_stats()
+        stats = get_pickled_stats(model_name, corpus_name, tag)
         print_stats_info(stats)
         return
 
@@ -126,12 +128,14 @@ def print_stats_info(stats: pd.DataFrame):
 
 use_saved_df = False
 for corpus_name in ["cranfield", "med"]:
-    print("VECTORIAL", corpus_name)
-    model = VectorialModel(BASE_PATH / f"{corpus_name}_corpus") 
-    eval_model("vectorial", corpus_name, model, use_saved_df)
-    print()
+    for feedback in [False, True]:
+        tag = "with_feedback_seeded" if feedback else "without_feedback_seeded"
+        print("VECTORIAL", corpus_name)
+        model = VectorialModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name, seed_feedbacck=feedback) 
+        eval_model("vectorial", corpus_name, model, tag, use_saved_df)
+        print()
 
-    print("SVM", corpus_name)
-    model = ClassificationSVMModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name)
-    eval_model("svm", corpus_name, model, use_saved_df)
-    print()
+        print("SVM", corpus_name)
+        model = ClassificationSVMModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name, seed_feedbacck=feedback)
+        eval_model("svm", corpus_name, model, tag, use_saved_df)
+        print()

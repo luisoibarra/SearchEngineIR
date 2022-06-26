@@ -6,6 +6,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pathlib import Path
+from nltk.metrics import distance
 
 from .base import InformationRetrievalModel, VecMatrix, add_training_documents
 from .utils import cosine_sim, get_object, save_object
@@ -20,7 +21,7 @@ def __rank_dist(classifier: SVC, query: dict, doc_dicts: dict, decompositor) -> 
     # for i,x in enumerate(query["vector"]):
     #     if abs(x) > 0.00001:
     #         print(i,x)
-
+    # print()
     # print("coeff svm")
     # for i,x in enumerate(classifier.coef_[0]):
     #     if abs(x) > 0.00001:
@@ -71,17 +72,30 @@ def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
     q_vec = query_repr["vector"]
     d_vec = doc_i_repr["vector"]
     
-    # Cosine Similarity
-    cosine = cosine_sim(q_vec, d_vec)
-
-    if not (cosine < 0 or cosine >= 0): # cosine is nan
-        cosine = 0
+    query_tok_set = set(query_repr["tokens"])
+    doc_tok_set = set(doc_i_repr["tokens"])
 
     q_vec_dec = decompositor.transform([q_vec])[0]
     d_vec_dec = decompositor.transform([d_vec])[0]
+    
+    # Cosine Similarity
+    original_cosine = cosine_sim(q_vec, d_vec)
+    condense_cosine = cosine_sim(q_vec_dec, d_vec_dec)
+    
+    jacard = distance.jaccard_distance(query_tok_set, doc_tok_set)
+
+    euclidean_dec = np.linalg.norm(q_vec_dec - d_vec_dec)
+    euclidean = np.linalg.norm(q_vec - d_vec)
+
+    intersection_feature_largest = len(set(query_repr["tokens"])) if query_repr["tokens"] else 1
+
     feature_vec = [
-        len(set(query_repr["tokens"]).intersection(doc_i_repr["tokens"])), 
-        cosine,
+        len(set(query_repr["tokens"]).intersection(doc_i_repr["tokens"])) / intersection_feature_largest, 
+        jacard,
+        euclidean,
+        euclidean_dec,
+        original_cosine,
+        condense_cosine,
     ]
     # Feature: QueryVec|DocVec|Cosine|TODO FEATURE ENGINEERING
     
@@ -101,8 +115,8 @@ def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
     feature = np.concatenate((
             # q_vec, 
             # d_vec, 
-            q_vec_dec, 
-            d_vec_dec, 
+            # q_vec_dec, 
+            # d_vec_dec, 
             feature_vec,
         ), 
     axis=0)
@@ -147,26 +161,45 @@ def add_decompositor(context: dict):
 
     return context
 
+def add_classifier(context: dict):
+    """
+    Add the classifier to train
+    """
+
+    training_documents = context["training_documents"]
+
+    training_doc_cache_key = [doc["dir"] for doc in training_documents]
+    suffix = "svm_rank" if context.get("use_rank_svm") else "svm"
+    classifier = get_object(training_doc_cache_key, suffix)
+    # if classifier:
+    if False: # TODO ONLY FOR TESTING
+        context["classifier"] = classifier
+        context["classifier_trained"] = True
+    else:
+        context["classifier"] = LinearSVC()
+        # context["classifier"] = SVC(kernel="poly")
+        # context["classifier"] = SVC()
+        context["classifier_trained"] = False
+
+    return context
+
 def train_margin_classifier(context: dict):
     """
     Train a SVM Classification model. 
     """
 
-    training_model = context["vectorial"]
+    classifier_trained = context.get("classifier_trained", False)
+    classifier: SVC = context["classifier"]
+    if classifier_trained: # Classifier is saved
+        return context
 
+    training_model = context["vectorial"]
     queries_dict = context["training_queries_dict"]
     relevances = context["training_relevance_tuples"]
     training_documents = context["training_documents"]
     decompositor = context.get("decompositor")
 
     training_doc_cache_key = [doc["dir"] for doc in training_documents]
-    classifier = get_object(training_doc_cache_key, "svm")
-    if classifier: # Classifier is saved
-        context["classifier"] = classifier
-        return context
-
-    # classifier = LinearSVC() 
-    classifier = SVC(kernel="poly") 
 
     doc_dicts = { doc_id: doc_repr for doc_id, doc_repr in [(Path(doc["dir"]).name.split(".")[0], doc) for doc in training_documents] }
 
@@ -210,6 +243,7 @@ def train_margin_classifier(context: dict):
     #         print("Pos",i,"value",x)
 
     save_object([doc["dir"] for doc in training_documents], classifier, "svm")
+    context["classifier_trained"] = True
 
     mean_accuracy = classifier.score(features, labels)
     print("Mean accuracy:", mean_accuracy)
@@ -224,20 +258,18 @@ def train_rank_classifier(context: dict):
     Train a RankSVM model.
     """
 
-    training_model = context["vectorial"]
+    classifier_trained = context.get("classifier_trained", False)
+    classifier: SVC = context["classifier"]
+    if classifier_trained: # Classifier is saved
+        return context
 
+    training_model = context["vectorial"]
     queries_dict = context["training_queries_dict"]
     relevances = context["training_relevance_tuples"]
     training_documents = context["training_documents"]
     decompositor = context.get("decompositor")
 
     training_doc_cache_key = [doc["dir"] for doc in training_documents]
-    classifier = get_object(training_doc_cache_key, "svm_rank")
-    if classifier: # Classifier is saved
-        context["classifier"] = classifier
-        return context
-
-    classifier = LinearSVC()
 
     doc_dicts = { doc_id: doc_repr for doc_id, doc_repr in [(Path(doc["dir"]).name.split(".")[0], doc) for doc in training_documents] }
 
@@ -293,6 +325,7 @@ def train_rank_classifier(context: dict):
     print("Feature size:", len(features[0]))
     print("Training samples:", len(features))
     classifier.fit(features, labels)
+    context["classifier_trained"] = True
 
     # print("Relevants SVM Coefficients")
     # for i,x in enumerate(classifier.coef_[0]):
@@ -385,6 +418,7 @@ class ClassificationSVMModel(InformationRetrievalModel):
             add_training_documents,
             add_vectorial,
             add_decompositor,
+            add_classifier,
             train_margin_classifier if not use_rank_svm else train_rank_classifier,
         )
 
@@ -401,6 +435,7 @@ class ClassificationSVMModel(InformationRetrievalModel):
             "dataset_name": dataset_name,
             "decomposition_size": 100,
             "seed_feedback": seed_feedback,
+            "use_rank_svm": use_rank_svm
         }
 
         feedback_pipeline = None # Default

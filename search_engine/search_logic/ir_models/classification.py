@@ -7,8 +7,8 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pathlib import Path
 
-from .base import InformationRetrievalModel
-from .utils import get_object, save_object, read_document, read_relevance , add_training_documents
+from .base import InformationRetrievalModel, add_training_documents
+from .utils import cosine_sim, get_object, save_object
 
 from .vectorial import VectorialModel
 from ..pipes.pipeline import Pipeline
@@ -72,7 +72,7 @@ def __get_feature(doc_i_repr: dict, query_repr: dict, decompositor):
     d_vec = doc_i_repr["vector"]
     
     # Cosine Similarity
-    cosine = np.dot(q_vec,d_vec)/(np.linalg.norm(q_vec) * np.linalg.norm(d_vec))
+    cosine = cosine_sim(q_vec, d_vec)
 
     if not (cosine < 0 or cosine >= 0): # cosine is nan
         cosine = 0

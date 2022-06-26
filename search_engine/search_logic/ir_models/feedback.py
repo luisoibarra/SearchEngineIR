@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import sim
+from .utils import cosine_sim
 
 def add_feedback_manager(context: dict) -> dict:
     """
@@ -121,7 +121,7 @@ class FeedbackManager:
 
     def _get_relevants(self, query: dict, relevant_dict: dict):
         try:
-            similar_queries = [(sim(query['vector'], np.array(simquery)), simquery)
+            similar_queries = [(cosine_sim(query['vector'], np.array(simquery)), simquery)
                                for simquery in relevant_dict]
             similar_queries.sort(key=lambda x: -x[0])
             similar_queries = similar_queries[:5]

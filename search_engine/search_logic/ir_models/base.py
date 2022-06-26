@@ -1,27 +1,20 @@
 from pathlib import Path
-from re import A
-from typing import Callable, List
-
-import numpy as np
-
+from typing import List
 from .feedback import add_feedback_vectors
 from .query_expansion import add_query_expansions
-
-from .utils import get_object, save_object
+from .utils import get_object, read_document, read_relevance, save_object
 from ..pipes.pipeline import Pipe, Pipeline 
 import os
 from typing import List, Tuple
 from nltk.corpus import stopwords
-from nltk.corpus import words, wordnet
+from nltk.corpus import wordnet
 import string
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
-
 from concurrent.futures import ThreadPoolExecutor, wait
-
 from nltk import WordNetLemmatizer
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-
+import ir_datasets as ir
 
 # READ PIPES
 def read_documents_from_hard_drive(context: dict) -> dict:
@@ -65,6 +58,71 @@ def read_documents_from_hard_drive(context: dict) -> dict:
     print("End document collecting")
     return context
 
+def add_training_documents(context: dict):
+    """
+    Adds the training corpus documents and training information.
+    """
+
+    dataset_name = context.get("dataset_name", "cranfield")
+
+    documents = []
+    relevance = set()
+    queries_dict = {}
+
+    if dataset_name in ["cranfield"]:
+        dataset = ir.load(dataset_name)
+        # Documents
+        for doc in dataset.docs_iter():
+            doc_id, title, text = doc.doc_id, doc.title, doc.text
+            if text:
+                documents.append({
+                    "text": text,
+                    "dir": doc_id,
+                    "topic": title
+                })
+
+        # Queries
+        queries_dict = {q.query_id: q.text for q in dataset.queries_iter()}
+
+        # Relevance
+        for qrel in dataset.qrels_iter():
+            q_id, d_id, rel = qrel.query_id, qrel.doc_id, qrel.relevance
+            if q_id in queries_dict:
+                relevance.add((q_id, d_id, rel))
+    elif dataset_name in ["med"]:
+
+        # Documents
+        document_path = Path(__file__, "..", "..", "..", "test",
+                             f"{dataset_name}_raw", f"{dataset_name.upper()}.ALL").resolve()
+        for doc_id, text in read_document(document_path):
+            documents.append({
+                "text": text,
+                "dir": doc_id,
+                "topic": dataset_name,
+            })
+
+        # Queries
+        query_path = Path(__file__, "..", "..", "..", "test",
+                          f"{dataset_name}_raw", f"{dataset_name.upper()}.QRY").resolve()
+        for q_id, text in read_document(query_path):
+            queries_dict[q_id] = text
+
+        # Relevance
+        relevance_path = Path(__file__, "..", "..", "..", "test",
+                              f"{dataset_name}_raw", f"{dataset_name.upper()}.REL").resolve()
+        relevance = set(x for x in read_relevance(relevance_path))
+    else:
+        raise Exception(f"Corpus {dataset_name} not supported")
+
+    context["documents"] = documents
+
+    context["training_documents"] = documents
+    context["training_queries_dict"] = queries_dict
+    context["training_relevance_tuples"] = relevance
+
+    return context
+
+# DOC 2 VEC PIPES
 def add_tokens(context: dict) -> dict:
     """
     Adds the saved tokens if any to the docs representation in `tokens` key
@@ -107,15 +165,12 @@ def add_lemmatizer(context: dict) -> dict:
     context["lemmatizer"]= WordNetLemmatizer()
     return context
 
-
 def add_wordnet(context: dict) -> dict:
     """
     Adds the `wordnet` used to the context
     """
     context["wordnet"] = wordnet
     return context
-
-
 
 def apply_text_processing_query(context: dict, tokenizer=word_tokenize) -> dict:
     """
@@ -259,9 +314,7 @@ class InformationRetrievalModel:
         """
         self.corpus_address = corpus_address
         self.query_context = query_context
-        self.query_context["vectorial"] = self # Cambios Dalmau
         self.build_context = build_context
-        self.build_context["vectorial"] = self # Cambios Dalmau
         self.query_pipeline = query_pipeline
         self.query_to_vec_pipeline = query_to_vec_pipeline
         self.build_pipeline = build_pipeline

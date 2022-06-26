@@ -10,8 +10,6 @@ import time as t
 import ir_datasets as ir
 
 ###### CHANGE CONFIGURATIONS HERE
-# corpus_name = "cranfield"
-corpus_name = "med"
 
 seed_feedback = True
 # seed_feedback = False
@@ -25,9 +23,9 @@ path = Path(__file__) / ".." / "test" / f"{corpus_name}_corpus"
 CORPUS = path.resolve()
 
 if model_name == "Vectorial":
-    model = VectorialModel(CORPUS, dataset_name=corpus_name)
+    model = VectorialModel(CORPUS, dataset_name=corpus_name, seed_feedbacck=seed_feedback)
 elif model_name == "Ranking SVM":
-    model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name)
+    model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name, seed_feedbacck=seed_feedback)
 else:
     raise Exception(f"Invalid model name {model_name}")
 

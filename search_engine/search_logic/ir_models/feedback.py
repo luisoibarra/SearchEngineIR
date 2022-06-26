@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import sim
 
 def add_feedback_manager(context: dict) -> dict:
     """
@@ -39,7 +40,7 @@ def add_feedback_to_query(context: dict):
     alpha = context.get("alpha_rocchio", 1)
     beta = context.get("beta_rocchio", 0.75)
     ro = context.get("ro_rocchio", 0.1)
-
+    
     relevants = feedback_manager.get_relevants(query)
     not_relevants = feedback_manager.get_not_relevants(query)
 
@@ -120,7 +121,17 @@ class FeedbackManager:
 
     def _get_relevants(self, query: dict, relevant_dict: dict):
         try:
-            return [np.array(doc['vector']) for doc in relevant_dict[tuple(query['vector'])]]
+            similar_queries = [(sim(query['vector'], np.array(simquery)), simquery)
+                               for simquery in relevant_dict]
+            similar_queries.sort(key=lambda x: -x[0])
+            similar_queries = similar_queries[:5]
+            similar_queries = [q for q in similar_queries if q[0] > 0]
+            
+            relevants = []
+            for _,q in similar_queries:
+                relevants += [np.array(doc['vector']) for doc in relevant_dict[q]]
+
+            return relevants
         except KeyError:
             return []
 

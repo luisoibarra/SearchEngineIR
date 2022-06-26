@@ -1,5 +1,4 @@
-import numpy as np
-
+from .utils import add_training_documents,sim
 from .feedback import add_feedback_manager, add_feedback_to_query
 from .query_expansion import add_query_expansion_manager
 from ..pipes.pipeline import Pipeline
@@ -30,16 +29,7 @@ def rank_documents(context: dict):
     higher will be returned
     """
     
-    def sim(x,y):
-        """
-        Finds the cosine between the x and y vectors 
-        """
-        norm_x = np.linalg.norm(x)
-        norm_y = np.linalg.norm(y)
-        if 0 in [norm_y, norm_x]:
-            return 0
-        return np.dot(x,y)/(norm_x*norm_y)
-
+    
     rank_threshold = context.get("rank_threshold", 0)
     
     query = context["query"]
@@ -84,6 +74,7 @@ class VectorialModel(InformationRetrievalModel):
         )
         build_pipeline = Pipeline(
             read_documents_from_hard_drive if not add_document_pipe else add_document_pipe, 
+            add_training_documents,  # Cambios Dalmau
             add_tokens,
             add_stopwords,
             add_lemmatizer, # Stemmer XOR Lemmatizer 

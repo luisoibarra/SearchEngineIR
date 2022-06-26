@@ -66,7 +66,7 @@ class VectorialModel(InformationRetrievalModel):
     
     def __init__(self, corpus_address: str, smooth_query_alpha=0.0, language="english", rank_threshold=0.0,
                  alpha_rocchio=1, beta_rocchio=0.75, ro_rocchio=0.1, add_document_pipe=None, dataset_name="cranfield",
-                 seed_feedbacck=False, **kwargs) -> None:
+                 seed_feedback=True, **kwargs) -> None:
 
         query_to_vec_pipeline = Pipeline(
             apply_text_processing_query, 
@@ -108,6 +108,6 @@ class VectorialModel(InformationRetrievalModel):
             "language": language,
             "dataset_name": dataset_name,
             "vectorial": self,
-            "seed_feedback": seed_feedbacck
+            "seed_feedback": seed_feedback
         }
         super().__init__(corpus_address, query_pipeline, query_to_vec_pipeline, build_pipeline, query_context, build_context)

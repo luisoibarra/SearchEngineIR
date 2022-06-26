@@ -286,7 +286,7 @@ relevantes que estén en una zona cercana y no exacta aumentando así el recuper
 \subsection{Expansión de query}
 
 %TODO Implementar
-Implementar algoritmo de expnsión de query
+Para implementar la expasión de query se hizo un algoritmo de correlación de términos,donde se analiza la ultima palabra de la query,y , si está en algún documento, entonces se hace un ranking de las palabras que más se usan después de esa palabra en los documentos. Para hacer esto se hizo una matriz para la correlación de los términos, de dimensión NxN donde N es la cantidad de palabras diferentes en el corpus, donde el valor en $[x,y]$ representa la cantidad de veces que depués de la palabra $x$ está la palabra $y$, se utilizó una matriz esparcida, que es una estructura muy útil para esto, ya que los valores que son 0 en la matriz, o sea los valores que no se han modificado no se guardan en memoria, y esta matriz cumple la característica de que la mayoría de sus valores son cero, y esto representa eficiencia y un gran ahorro de memoria.Entoces de ahí se saca un ranking de las posibles palabras para la expansión de la query.
 
 \section{Interfaz gráfica}
 

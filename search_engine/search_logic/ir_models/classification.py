@@ -7,7 +7,7 @@ from sklearn.preprocessing import StandardScaler
 import numpy as np
 from pathlib import Path
 
-from .base import InformationRetrievalModel, add_training_documents
+from .base import InformationRetrievalModel, VecMatrix, add_training_documents
 from .utils import cosine_sim, get_object, save_object
 
 from .vectorial import VectorialModel
@@ -373,7 +373,8 @@ def classifier_query(context: dict):
 
 class ClassificationSVMModel(InformationRetrievalModel):
     
-    def __init__(self, corpus_address: str, use_rank_svm=True, dataset_name: str="cranfield", language: str = "english") -> None:
+    def __init__(self, corpus_address: str, use_rank_svm=True, dataset_name: str="cranfield", language: str = "english",
+                 seed_feedback=False, **kwargs) -> None:
 
         query_pipeline = Pipeline(
             classifier_query,
@@ -398,7 +399,8 @@ class ClassificationSVMModel(InformationRetrievalModel):
         build_context = {
             "language": language,
             "dataset_name": dataset_name,
-            "decomposition_size": 100
+            "decomposition_size": 100,
+            "seed_feedback": seed_feedback,
         }
 
         feedback_pipeline = None # Default

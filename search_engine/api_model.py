@@ -9,16 +9,27 @@ from pathlib import Path
 import time as t
 import ir_datasets as ir
 
-# CHANGE CORPUS HERE
-# corpus_name = "cranfield"
-corpus_name = "med"
+###### CHANGE CONFIGURATIONS HERE
+corpus_name = "cranfield"
+# corpus_name = "med"
+
+seed_feedback = True
+# seed_feedback = False
+
+model_name = "Ranking SVM"
+# model_name = "Vectorial"
+
+######
 
 path = Path(__file__) / ".." / "test" / f"{corpus_name}_corpus"
 CORPUS = path.resolve()
 
-# CHANGE MODEL HERE
-model = VectorialModel(CORPUS, dataset_name=corpus_name)
-# model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name)
+if model_name == "Vectorial":
+    model = VectorialModel(CORPUS, dataset_name=corpus_name)
+elif model_name == "Ranking SVM":
+    model = ClassificationSVMModel(CORPUS, dataset_name=corpus_name)
+else:
+    raise Exception(f"Invalid model name {model_name}")
 
 model.build()
 

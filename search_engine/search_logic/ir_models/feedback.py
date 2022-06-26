@@ -75,19 +75,18 @@ class FeedbackManager:
         documents_vectors = context["documents"]
         relevance = context["training_relevance_tuples"]
         transform_query = context["vectorial"].transform_query
+        seed_feedback = context.get("seed_feedback", False)
 
-        for q,d,r in relevance:
-            document = [document for document in documents_vectors if document["dir"] == d][0]
-            query = queries_dict[q]
-            query = transform_query(query,context)
+        if seed_feedback:
+            for q,d,r in relevance:
+                document = [document for document in documents_vectors if document["dir"] == d][0]
+                query = queries_dict[q]
+                query = transform_query(query,context)
 
-            if r > 0:
-                self.mark_relevant(query, document)
-            else:
-                self.mark_not_relevant(query, document)
-
-
-        return
+                if r > 0:
+                    self.mark_relevant(query, document)
+                else:
+                    self.mark_not_relevant(query, document)
 
     def _mark_document(self, query: dict, document: dict, relevance_dict: dict):
 

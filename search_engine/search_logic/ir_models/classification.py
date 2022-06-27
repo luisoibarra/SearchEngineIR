@@ -171,8 +171,8 @@ def add_classifier(context: dict):
     training_doc_cache_key = [doc["dir"] for doc in training_documents]
     suffix = "svm_rank" if context.get("use_rank_svm") else "svm"
     classifier = get_object(training_doc_cache_key, suffix)
-    # if classifier:
-    if False: # TODO ONLY FOR TESTING
+    if classifier:
+    # if False: # TODO ONLY FOR TESTING
         context["classifier"] = classifier
         context["classifier_trained"] = True
     else:

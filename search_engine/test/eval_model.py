@@ -126,16 +126,16 @@ def print_stats_info(stats: pd.DataFrame):
         print()
 
 
-use_saved_df = False
+use_saved_df = True
 for corpus_name in ["cranfield", "med"]:
     for feedback in [False, True]:
-        tag = "with_feedback_seeded" if feedback else "without_feedback_seeded"
-        print("VECTORIAL", corpus_name)
-        model = VectorialModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name, seed_feedbacck=feedback) 
+        tag = "with_feedback_seeded_" if feedback else "without_feedback_seeded_"
+        print("VECTORIAL", corpus_name, "Feedback", feedback)
+        model = VectorialModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name, seed_feedback=feedback) 
         eval_model("vectorial", corpus_name, model, tag, use_saved_df)
         print()
 
-        print("SVM", corpus_name)
-        model = ClassificationSVMModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name, seed_feedbacck=feedback)
+        print("SVM", corpus_name, "Feedback", feedback)
+        model = ClassificationSVMModel(BASE_PATH / f"{corpus_name}_corpus", dataset_name=corpus_name, seed_feedback=feedback)
         eval_model("svm", corpus_name, model, tag, use_saved_df)
         print()

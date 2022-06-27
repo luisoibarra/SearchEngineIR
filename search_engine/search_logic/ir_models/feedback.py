@@ -112,7 +112,7 @@ class FeedbackManager:
         """
         self._mark_document(query, document, self.not_relevant_dict)
 
-    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.25):
+    def _get_relevants(self, query: dict, relevant_dict: dict, relevant_threshold=0.6):
         try:
             q_vec = tuple(query['vector'])
             if not q_vec in relevant_dict:

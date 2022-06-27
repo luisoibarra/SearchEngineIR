@@ -16,8 +16,8 @@ corpus_name = "med"
 seed_feedback = True
 # seed_feedback = False
 
-model_name = "Ranking SVM"
-# model_name = "Vectorial"
+# model_name = "Ranking SVM"
+model_name = "Vectorial"
 
 ######
 

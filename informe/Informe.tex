@@ -44,21 +44,21 @@ que buscan de manera rápida y eficiente. Este trabajo presenta una implementaci
 un motor de búsqueda basado en el modelo vectorial y en Ranking SVM. Se presentan la arquitectura,
 algoritmos y procesamientos usados para dicha implementación. Se trabajó sobre un conjunto de datos
 de tipo científico obteniendo resultados superiores en el modelo vectorial y se evidencia el efecto
-del algoritmo de Rocchio para el mejoramiento de las métricas en la retroalimentación del motor de búsqueda.
-El resultado final es presentado al usuario mediante una interfaz gráfica que permite
-al usuario realizar consultas de manera natural.
+del algoritmo de Rocchio para el mejoramiento de las métricas mediante la retroalimentación.
+El resultado final es presentado al usuario mediante una interfaz gráfica que le permite
+realizar consultas de manera natural.
 
-\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial. \and Support Vector Machine}
+\keywords{Recuperación de Información  \and Motor de Búsqueda \and Modelo Vectorial. \and Ranking SVM}
 \end{abstract}
 
 \section{Introducción}
 
 El ámbito de recuperación de información es un área de las Ciencias de la Computación que tiene
-actualmente gran importancia debido al gran volumen de información que se genera cada día en la
-web. Esta información debe de ser encontrada por los usuarios de manera rápida y eficiente y es
+actualmente gran importancia debido al gran volumen de información que se genera cada día. 
+Esta información debe de ser encontrada por los usuarios de manera rápida y eficiente y es
 de esta tarea en la cual un motor de búsqueda es necesario. La tarea esencial de un motor de
 búsqueda es la de recuperar documentos que estén asociados a una pregunta planteada por el usuario, 
-esta recuperación tiene que ser de calidad conteniendo información relevante que el usuario pueda
+esta recuperación tiene que ser de calidad, conteniendo información relevante que el usuario pueda
 usar para lograr su objetivo.
 
 En este ámbito se presentan tres tipos de modelos clásicos de recuperación de los
@@ -76,8 +76,8 @@ construcción de una interfaz visual para la interacción con el usuario, en est
 streamlit y Flutter para la construcción de páginas web con esta finalidad.
 
 El trabajo de divide en varias secciones, primero se analiza la arquitectura del motor de
-búsqueda, se presenta el algoritmo y procesamiento usado para la implementación de 
-este, presentará una sección sobre la implementación de la interfaz gráfica, por último
+búsqueda, se presenta los algoritmos y procesamientos usados para la implementación de 
+este, se presenta una sección sobre la implementación de la interfaz gráfica y por último
 se presenta el resultado final del motor de búsqueda.
 
 \section{Arquitectura}
@@ -89,6 +89,10 @@ Todo motor de búsqueda consta de tres partes fundamentales a la hora de darle r
     \item Buscar documentos relevantes a la pregunta
     \item Devolver los documentos relevantes encontrados
 \end{itemize}
+
+La interfaz visual es la encargada de enviarle los comandos a la API del motor de búsqueda. Luego
+la API se comunica con la lógica de este haciendo los procesamientos necesarios para finalmente
+devolverle el resultado al usuario.
 
 \subsection{Flujo de datos del motor de búsqueda}
 
@@ -121,7 +125,7 @@ documentos relevantes de la búsqueda.
     \item GET \url{document/?document\_dir=document\_dir} Devuelve el contenido del documento asociado
 al id dado.
 	\item GET \url{expand/?query=query} Devuelve las posibles expansiones de consulta encontradas por el programa
-	\item POST \url{feedback/} Envía la información para marcar como relevante o no los documentos mostrados.
+	\item POST \url{feedback/} Recibe la información para marcar como relevante o no los documentos mostrados.
 \end{itemize}
 
 \section{Implementación del motor de búsqueda}
@@ -131,7 +135,7 @@ al id dado.
 La tokenización es el proceso en el cual se divide una cadena de caracteres en palabras o tokens.
 Estos tokens son luego procesados en dependencia del modelo de búsqueda que se quiera implementar.
 La implementación de la tokenización en el motor de búsqueda se lleva a cabo mediante el uso del
-framework nltk. Esta es dividida principalmente en varias etapas:
+framework nltk. Esta es dividida en varias etapas:
 
 \begin{enumerate}
     \item Convertir el texto en tokens
@@ -285,7 +289,7 @@ se logre mejorar el rendimiento del modelo.
 Para la retroalimentación se eligió el algoritmo de Rocchio debido a su simplicidad. Este se basa 
 en el cálculo de centroides de un conjunto de documentos relevantes y no relevantes a una query
 y su posterior suma ponderada con el objetivo de mover el vector query hacia el conjunto de 
-documentos relevantes y alejarlo del conjunto de documentos no relevantes. La fórmula final sería:
+documentos relevantes y alejarlo del conjunto de documentos no relevantes. La fórmula final es la siguiente:
 
 \begin{equation}
     q_f = \alpha q_0 + \frac{\beta}{|D_r|}*\sum_{d_r \in D_r} d_r -  \frac{\gamma}{|D_{nr}|}*\sum_{d_{nr} \in D_{nr}} d_{nr} 
@@ -305,18 +309,15 @@ beta y ro los cuales son 1, 0.75 y 0.1 respectivamente.
 La retroalimentación también está dada explícita por el usuario. Se puede crear el modelo realizando 
 un sembrado automático de las relaciones consulta-documento del corpus las cuales sirven para, dada la 
 consulta, encontrar consultas similares a estas y devolver los documentos relevantes y no relevantes 
-para utilizar en el algoritmo de Rocchio. Se utiliza un valor preestablecido de 0.25 para separar las 
+para utilizar en el algoritmo de Rocchio. Se utiliza un valor preestablecido de 0.6 para separar las 
 consultas similares más significativas y además solo se escogen las 5 primeras consultas con mayor 
 similitud, incluyendo a la misma consulta para poder tomar en cuenta la retroalimentación dada por el 
 usuario.
 
+\subsection{Expansión de consulta}
 
-%TODO Implementar esta última idea, ver qué funciona mejor y ponerlo en el informe
-
-\subsection{Expansión de query}
-
-Para implementar la expansión de query se hizo un algoritmo de correlación de términos, donde se analiza la última palabra de la 
-query, y si está en algún documento, entonces se hace un ranking de las palabras que más se usan después de esa palabra en los
+Para implementar la expansión de consulta se hizo un algoritmo de correlación de términos, donde se analiza la última palabra de la 
+consulta, y si está en algún documento, entonces se hace un ranking de las palabras que más se usan después de esa palabra en los
 documentos. Para hacer esto se hizo una matriz para la correlación de los términos, de dimensión NxN donde N es la cantidad de 
 palabras diferentes en el corpus, donde el valor en $[x,y]$ representa la cantidad de veces que después de la palabra $x$ está 
 la palabra $y$, se utilizó una matriz esparcida, que es una estructura muy útil para esto, ya que los valores que son 0 en la 
@@ -493,7 +494,7 @@ la pobre separación lograda en el entrenamiento de dicho modelo. Algo interesan
 impacto que tiene añadirle la retroalimentación al modelo vectorial, sobre todo en el corpus Cranfield, 
 donde sus métricas F1 aumentan aproximadamente 10 veces.
 
-Las métricas del modelo Ranking SVM son malas con en general y con respecto al vectorial. Al añadir la retroalimentación
+Las métricas del modelo Ranking SVM son malas en general y con respecto al vectorial. Al añadir la retroalimentación
 a la representación de los vectores no se vio un aumento en las métricas como lo tuvo el modelo vectorial (se observó un
 ligero descenso), esto se puede deber a que el cambio de representación de los documentos en ambos modelos.
 

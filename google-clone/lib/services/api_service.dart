@@ -72,6 +72,26 @@ class ApiService {
       final uri = await apiConfigurationService.getUrl(_getQueryExpand,
           queryParams: {"query": query});
       final response = await http.get(uri);
+       try
+      {
+         final response = await http.get(uri, headers: {
+           'Content-type': 'application/json',
+           "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+           "Access-Control-Allow-Credentials":
+           'true', // Required for cookies, authorization headers with HTTPS
+           "Access-Control-Allow-Headers":
+           "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+           "Access-Control-Allow-Methods": "POST, GET,OPTIONS"
+        });
+          List<String> result = List<String>.from(json.decode(response.body));
+          return result;
+      }
+     catch (e) {
+       print(e.toString());
+      }
+
+
+
        List<String> result = List<String>.from(json.decode(response.body));
         return result;
     }

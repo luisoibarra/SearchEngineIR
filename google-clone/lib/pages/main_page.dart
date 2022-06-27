@@ -10,15 +10,7 @@ import 'package:google_clone/provider/autocomplete_provider.dart';
 import 'package:google_clone/provider/search_result_provider.dart';
 import 'package:http/http.dart' as http;
 
- List<String> querySug = <String>[
-   'Afssrica',
-   'Antarctica',
-    'Asia',
-     'Australia',
-    'Europe',
-     'North America',
-    'South America',
-  ];
+ List<String> querySug = <String>[];
 
 class GoogleSearchPage extends StatefulWidget {
   const GoogleSearchPage({Key? key}) : super(key: key);
@@ -58,139 +50,6 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                     /* Search Bar */
                     Consumer<MainScreenProvider>(
                       builder: (context, provider, child) {
-                        TextField myTextField = TextField(
-                                    onSubmitted: (text) {
-                                      if (text.trim() != "")
-                                        Navigator.pushNamed(context,
-                                            '/search?q=${text.trim()}&start=0');
-                                    },
-                                    controller: provider.searchFieldController,
-                                    onTap: () {
-                                      provider.isFocusedTextField = true;
-                                    },
-                                    style: TextStyle(fontSize: 16),
-                                    cursorColor: Colors.black,
-                                    cursorWidth: 1,
-                                    cursorHeight: 20,
-                                    onChanged : (text) async {
-                                      if (text == "")
-                                        provider.isTextFilled = false;
-                                      else
-                                        provider.isTextFilled = true;
-                                        querySug = await mainScreenProvider.apiService.fetchQuery(context: context, query: text);
-                                        // FutureBuilder<List<String>>(
-                                        //           future: mainScreenProvider.apiService.fetchQuery(
-                                        //               context: context, 
-                                        //               query: text),
-                                        //           builder: (context,snapshot)
-                                        //           { if (snapshot.hasData)
-                                        //               querySug = snapshot.data as List<String>;
-                                        //             else 
-                                        //               querySug = [];
-                                        //             return Container();
-                                        //           }
-                                        //           );
-                                        //here write the query expantion method 
-                                    },
-                                    textAlignVertical: TextAlignVertical.center,
-                                    decoration: InputDecoration(
-                                      prefixIcon: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 14),
-                                        child: GestureDetector(
-                                          onTap: () {
-                                            if (mainScreenProvider
-                                                    .searchFieldController.text
-                                                    .trim() !=
-                                                "")
-                                              Navigator.pushNamed(context,
-                                                  '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=0');
-                                          },
-                                          child: Icon(
-                                            Icons.search,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ),
-                                      suffixIcon: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 20),
-                                        child: Container(
-                                          constraints:
-                                              BoxConstraints(maxWidth: 100),
-                                          child: provider.isTextFilled
-                                              ? Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.end,
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    IconButton(
-                                                      onPressed: () {
-                                                        provider
-                                                            .searchFieldController
-                                                            .text = "";
-                                                        provider.isTextFilled =
-                                                            false;
-                                                      },
-                                                      icon: Icon(
-                                                        Icons.close,
-                                                        color: Color(0xFF70757a),
-                                                      ),
-                                                    ),
-                                                    Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                        top: 10.0,
-                                                        bottom: 10.0,
-                                                        right: 10,
-                                                      ),
-                                                      child: Container(
-                                                        width: 1,
-                                                        color: Colors.grey[300],
-                                                      ),
-                                                    ),
-                                                    SvgPicture.asset(
-                                                      provider.micIconUrl,
-                                                      height: 20,
-                                                      width: 20,
-                                                    ),
-                                                  ],
-                                                )
-                                              : Tooltip(
-                                                  preferBelow: true,
-                                                  padding: EdgeInsets.all(5),
-                                                  textStyle: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.white,
-                                                    fontSize: 13,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.black,
-                                                  ),
-                                                  message: 'Search by voice',
-                                                  child: SvgPicture.asset(
-                                                    provider.micIconUrl,
-                                                    height: 20,
-                                                    width: 20,
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                      focusedBorder: InputBorder.none,
-                                      enabledBorder:
-                                          (provider.isHoveringOnTextField ||
-                                                  provider.isFocusedTextField)
-                                              ? InputBorder.none
-                                              : OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(22),
-                                                  borderSide: BorderSide(
-                                                    width: 0.0,
-                                                    color: Colors.grey.shade300,
-                                                  ),
-                                                ),
-                                    ),
-                                  );
                         return
                         Column(
                           children:[ 
@@ -219,7 +78,140 @@ class _GoogleSearchPageState extends State<GoogleSearchPage> {
                                         borderRadius: BorderRadius.circular(22),
                                         ),
                                  
-                                      child: myTextField ,
+                                      child: 
+                                      FutureBuilder<List<String>>(
+                                          future: mainScreenProvider.apiService.fetchQuery(
+                                                  context: context,
+                                                  query: mainScreenProvider.searchFieldController.text),
+                                            builder :(context, snapshot) {
+                                             return TextField(
+                                                      onSubmitted: (text) {
+                                                        if (text.trim() != "")
+                                                          Navigator.pushNamed(context,
+                                                              '/search?q=${text.trim()}&start=0');
+                                                      },
+                                                      controller: provider.searchFieldController,
+                                                      onTap: () {
+                                                        provider.isFocusedTextField = true;
+                                                      },
+                                                      style: TextStyle(fontSize: 16),
+                                                      cursorColor: Colors.black,
+                                                      cursorWidth: 1,
+                                                      cursorHeight: 20,
+                                                      onChanged : (text) async {
+                                                        if (text == "")
+                                                          provider.isTextFilled = false;
+                                                        else
+                                                          provider.isTextFilled = true;
+                                                          if (snapshot.hasData){
+                                                            querySug = snapshot.data as List<String>;
+                                                 
+                                                          }
+                                                          else 
+                                                            querySug = [];
+                                                          
+                                                      },
+                                                      textAlignVertical: TextAlignVertical.center,
+                                                      decoration: InputDecoration(
+                                                        prefixIcon: Padding(
+                                                          padding: const EdgeInsets.symmetric(
+                                                              horizontal: 14),
+                                                          child: GestureDetector(
+                                                            onTap: () {
+                                                              if (mainScreenProvider
+                                                                      .searchFieldController.text
+                                                                      .trim() !=
+                                                                  "")
+                                                                Navigator.pushNamed(context,
+                                                                    '/search?q=${mainScreenProvider.searchFieldController.text.trim()}&start=0');
+                                                            },
+                                                            child: Icon(
+                                                              Icons.search,
+                                                              color: Colors.grey,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        suffixIcon: Padding(
+                                                          padding: const EdgeInsets.symmetric(
+                                                              horizontal: 20),
+                                                          child: Container(
+                                                            constraints:
+                                                                BoxConstraints(maxWidth: 100),
+                                                            child: provider.isTextFilled
+                                                                ? Row(
+                                                                    mainAxisAlignment:
+                                                                        MainAxisAlignment.end,
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      IconButton(
+                                                                        onPressed: () {
+                                                                          provider
+                                                                              .searchFieldController
+                                                                              .text = "";
+                                                                          provider.isTextFilled =
+                                                                              false;
+                                                                        },
+                                                                        icon: Icon(
+                                                                          Icons.close,
+                                                                          color: Color(0xFF70757a),
+                                                                        ),
+                                                                      ),
+                                                                      Padding(
+                                                                        padding:
+                                                                            const EdgeInsets.only(
+                                                                          top: 10.0,
+                                                                          bottom: 10.0,
+                                                                          right: 10,
+                                                                        ),
+                                                                        child: Container(
+                                                                          width: 1,
+                                                                          color: Colors.grey[300],
+                                                                        ),
+                                                                      ),
+                                                                      SvgPicture.asset(
+                                                                        provider.micIconUrl,
+                                                                        height: 20,
+                                                                        width: 20,
+                                                                      ),
+                                                                    ],
+                                                                  )
+                                                                : Tooltip(
+                                                                    preferBelow: true,
+                                                                    padding: EdgeInsets.all(5),
+                                                                    textStyle: TextStyle(
+                                                                      fontWeight: FontWeight.bold,
+                                                                      color: Colors.white,
+                                                                      fontSize: 13,
+                                                                    ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors.black,
+                                                                    ),
+                                                                    message: 'Search by voice',
+                                                                    child: SvgPicture.asset(
+                                                                      provider.micIconUrl,
+                                                                      height: 20,
+                                                                      width: 20,
+                                                                    ),
+                                                                  ),
+                                                          ),
+                                                        ),
+                                                        focusedBorder: InputBorder.none,
+                                                        enabledBorder:
+                                                            (provider.isHoveringOnTextField ||
+                                                                    provider.isFocusedTextField)
+                                                                ? InputBorder.none
+                                                                : OutlineInputBorder(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(22),
+                                                                    borderSide: BorderSide(
+                                                                      width: 0.0,
+                                                                      color: Colors.grey.shade300,
+                                                                    ),
+                                                                  ),
+                                                      ),
+                                            );
+                                            },
+                                            ),
                                       ),
                               ),
                             ),

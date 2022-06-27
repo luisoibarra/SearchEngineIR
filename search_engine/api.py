@@ -26,14 +26,8 @@ async def get_query_result(query:str) -> List[str]:
     """
     Returns query's expansions
     """
-    # return get_query_expansions(query)
-    return[
-    'Europe',
-     'North America',
-    'South America',
-    'adsa',
-    'fdafd'
-  ]
+    return get_query_expansions(query)
+ 
 
 @app.post("/feedback")
 async def apply_feedback(feedback: FeedbackModel):
@@ -42,6 +36,6 @@ async def apply_feedback(feedback: FeedbackModel):
     """
     apply_feedback_to_model(feedback)
 
-# if __name__ == "__main__":
-#     import uvicorn
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

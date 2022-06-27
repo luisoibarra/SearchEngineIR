@@ -374,7 +374,7 @@ Las métricas usadas para evaluar los modelos son precisión, recobrado y F1. De
 motor de búsqueda devuelve todos los documentos, se utilizaron diferentes niveles de corte en la evaluación
 de estos. Las métricas fueron calculadas para cada consulta en el corpus y se les halló la media. Tener en cuenta
 que la cantidad de documentos relevantes a la consulta puede ser menor que el corte expresado afectando así el
-promedio de precisión.
+promedio de precisión, esto se evidencia en alto recobrado y baja precisión.
 
 \begin{equation}
 Pr_c = \frac{1}{c} \sum_{i=1}^{|Q|} \frac{|RR_i|}{c}

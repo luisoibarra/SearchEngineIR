@@ -132,7 +132,18 @@ class QueryExpansionManager:
         """
         Returns a rank for the query expansion for the given query
         """
+        if query["text"] == "":
+            return[]
+        
         words = word_tokenize(query["text"], context.get("language", "english"))[-1]
         word = words.lower()
         rank = self.get_expand_query(context,word)
+        list_words = context["words_list"]
+       
+        if len(rank) == 0:
+            rank = [i for i in list_words if i.startswith(query["text"])]
+            i = 3
+            return [""+ x for x in rank[:5]]
+        
+        
         return [query['text'] + " " + x for x in rank[:5]] # TODO

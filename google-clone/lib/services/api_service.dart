@@ -11,6 +11,7 @@ class ApiService {
   static const _getQueryPath = "query";
   static const _getDocumentPath = "document";
   static const _applyFeedbackPath = "feedback";
+  static const _getQueryExpand = "expand";
 
   
   Future<QueryResponseModel?> fetchData(
@@ -47,6 +48,7 @@ class ApiService {
 
 
 
+
   Future<String?> fetchDocument(
       {required BuildContext context,
       required String documentDir}) async {
@@ -60,6 +62,42 @@ class ApiService {
     }
     return null;
   }
+
+  Future<List<String>> fetchQuery(
+      {required BuildContext context,
+      required String query}) async {
+    if (!this.useDummyData) {
+      final apiConfigurationService =
+          Provider.of<ApiConfigurationService>(context);
+      final uri = await apiConfigurationService.getUrl(_getQueryExpand,
+          queryParams: {"query": query});
+      final response = await http.get(uri);
+       try
+      {
+         final response = await http.get(uri, headers: {
+           'Content-type': 'application/json',
+           "Access-Control-Allow-Origin": "*", // Required for CORS support to work
+           "Access-Control-Allow-Credentials":
+           'true', // Required for cookies, authorization headers with HTTPS
+           "Access-Control-Allow-Headers":
+           "Origin,Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,locale",
+           "Access-Control-Allow-Methods": "POST, GET,OPTIONS"
+        });
+          List<String> result = List<String>.from(json.decode(response.body));
+          return result;
+      }
+     catch (e) {
+       print(e.toString());
+      }
+
+
+
+       List<String> result = List<String>.from(json.decode(response.body));
+        return result;
+    }
+    return [];
+  }
+
 
   Future<bool> applyFeedback({
     required BuildContext context,
